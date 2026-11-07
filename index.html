@@ -72,6 +72,23 @@ input[type=text]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .choice:hover{border-color:var(--gold)}
 .choice small{display:block;font-weight:400;color:var(--muted);font-size:14px}
 #dHint{font-size:12px;color:var(--muted);text-align:right;letter-spacing:.06em}
+.slots{display:flex;flex-direction:column;gap:10px}
+.slot{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;
+  flex-wrap:wrap;background:rgba(255,255,255,.025)}
+.slot .info{flex:1 1 220px;min-width:0}
+.slot .nm{font-family:var(--f-display);font-weight:700;font-size:18px;color:var(--gold)}
+.slot .l1{font-size:15px;font-weight:700}
+.slot .l2,.slot .l3{font-size:13px;color:var(--muted)}
+.slot .acts{display:flex;gap:8px;flex-wrap:wrap}
+.sbtn{font:inherit;font-size:14px;font-weight:700;cursor:pointer;border-radius:7px;padding:7px 12px;
+  border:1px solid var(--line);background:transparent;color:var(--ink)}
+.sbtn:hover{border-color:var(--gold);color:var(--gold)}
+.sbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.sbtn.danger:hover{border-color:#e0485a;color:#ff8a98}
+textarea{font:inherit;font-size:13px;width:100%;box-sizing:border-box;color:var(--ink);background:#0a0c18;
+  border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical;-webkit-user-select:text;user-select:text;
+  word-break:break-all}
+textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 24px}
 @media (max-width:620px){.grid2{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.clan,.sw{transition:none}}
@@ -85,11 +102,15 @@ input[type=text]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   <div class="card">
     <div>
       <h1>Élémentia</h1>
-      <p class="tag">Quatre clans en guerre, un trône à Astralis, et un enfant qui rêve de paix. Choisis ton clan, apprends dix pouvoirs auprès des maîtres du royaume, et deviens assez fort pour unir les quatre cités.</p>
+      <p class="tag">Quatre clans en guerre, un trône à Astralis, et un enfant qui rêve de paix. Choisis ton clan, apprends vingt pouvoirs auprès des maîtres du royaume, scelle un pacte avec ton dieu, et deviens assez fort pour unir les quatre cités.</p>
     </div>
     <div class="row" id="contRow" hidden>
       <button class="btn" id="contBtn" type="button">Continuer</button>
+      <button class="btn ghost" id="loadBtn" type="button">Charger une partie</button>
       <span class="keys" id="contInfo"></span>
+    </div>
+    <div class="row" id="noSaveRow">
+      <button class="btn ghost" id="loadBtn2" type="button">Restaurer un code de sauvegarde</button>
     </div>
     <div class="field">
       <label class="lbl" for="nameIn">Nom du héros</label>
@@ -106,7 +127,7 @@ input[type=text]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <div class="row">
       <button class="btn" id="startBtn" type="button">Commencer l'aventure</button>
     </div>
-    <p class="keys"><b>ZQSD</b> ou flèches : se déplacer · <b>Clic</b> ou <b>Espace</b> : épée · <b>1</b> à <b>9</b> : sorts · <b>R</b> : ultime · <b>E</b> : parler, portail · <b>M</b> : monture · <b>H</b> : aide. Sur tablette : joystick à gauche, boutons à droite.</p>
+    <p class="keys"><b>ZQSD</b> ou flèches : se déplacer · <b>Souris</b> : viser · <b>Clic</b> ou <b>Espace</b> : épée · <b>1</b> à <b>0</b> : sorts · <b>Tab</b> : changer de page · <b>R</b> : pouvoir divin · <b>E</b> : parler, portail · <b>M</b> : monture · <b>H</b> : menu et sauvegarde. Sur tablette : joystick à gauche pour marcher, doigt à droite pour viser, boutons pour frapper.</p>
   </div>
 </div>
 
@@ -117,20 +138,50 @@ input[type=text]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       <span><b>ZQSD / WASD / flèches</b> : se déplacer</span>
       <span><b>Souris</b> : viser</span>
       <span><b>Clic gauche / Espace</b> : coup d'épée</span>
-      <span><b>1</b> à <b>9</b> : sorts appris</span>
-      <span><b>R</b> : sort ultime</span>
-      <span><b>E</b> : parler à un maître, utiliser un portail</span>
+      <span><b>1</b> à <b>9</b> et <b>0</b> : les dix sorts de la page</span>
+      <span><b>Tab</b> : passer à l'autre page de sorts</span>
+      <span><b>R</b> : pouvoir divin</span>
+      <span><b>E</b> : parler, prendre un objet, portail, registre</span>
       <span><b>M</b> : monter ou descendre de ta monture</span>
       <span><b>Entrée</b> : dialogue suivant</span>
-      <span><b>H / Échap</b> : cette aide</span>
+      <span><b>H / Échap</b> : ce menu</span>
     </div>
+    <h2>Viser</h2>
+    <p class="keys">Le réticule suit ta souris et la ligne en pointillés montre où part le sort. Quand le réticule frôle un ennemi, la visée s'accroche à lui : il se marque de quatre crochets rouges et tous tes sorts partent sur son centre. Sans souris, la visée se verrouille toute seule sur l'ennemi le plus proche. Sur tablette, glisse le doigt sur la moitié droite de l'écran pour viser.</p>
     <h2>Apprendre les pouvoirs</h2>
-    <p class="keys">Chaque clan possède dix pouvoirs. Atteindre le niveau requis ne suffit pas : il faut trouver le maître qui enseigne le sort et lui parler. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même. Les sorts verrouillés indiquent où aller.</p>
+    <p class="keys">Chaque clan possède vingt pouvoirs, plus un pouvoir divin. Atteindre le niveau requis ne suffit pas : il faut trouver le maître qui enseigne le sort et lui parler. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même. Les sorts verrouillés indiquent où aller.</p>
+    <h2>Sauvegarder</h2>
+    <p class="keys">La partie s'enregistre toute seule toutes les vingt secondes dans l'emplacement automatique. Le bouton Sauvegarder ci-dessous ouvre trois emplacements supplémentaires que tu gères toi-même, et un code de sauvegarde à copier pour retrouver ta partie sur un autre ordinateur.</p>
     <h2>Le royaume</h2>
     <p class="keys">Les dômes des cités et la capitale te protègent et te soignent. Les Oubliés rôdent dehors. Chaque clan supporte son propre terrain : la lave ne brûle pas le clan du feu, l'orage ne blesse pas le clan de l'électricité, l'eau profonde ne ralentit pas le clan de l'eau. Les portails, sur la grande place de chaque cité visitée, permettent de traverser le royaume d'un bond.</p>
     <div class="row">
       <button class="btn" id="helpClose" type="button">Reprendre</button>
+      <button class="btn ghost" id="openSaves" type="button">Sauvegarder</button>
       <button class="btn ghost" id="toTitle" type="button">Menu principal</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="saves" hidden>
+  <div class="card">
+    <div>
+      <h2 id="savTitle">Sauvegardes</h2>
+      <p class="keys" id="savHint">La partie s'enregistre toute seule dans l'emplacement automatique. Les trois autres sont à toi : garde-y une partie avant un passage difficile.</p>
+    </div>
+    <div id="slotList" class="slots"></div>
+    <div>
+      <p class="lbl">Code de sauvegarde</p>
+      <p class="keys">Copie ce code et garde-le au chaud : il te rend ta partie même si tu changes d'ordinateur ou si ton navigateur efface ses données. Pour revenir à une partie, colle le code ici et clique Restaurer.</p>
+      <textarea id="savCode" rows="3" spellcheck="false" aria-label="Code de sauvegarde"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" id="savExport" type="button">Afficher mon code</button>
+        <button class="btn ghost" id="savCopy" type="button">Copier</button>
+        <button class="btn ghost" id="savImport" type="button">Restaurer ce code</button>
+      </div>
+      <p class="keys" id="savMsg"></p>
+    </div>
+    <div class="row">
+      <button class="btn" id="savClose" type="button">Retour</button>
     </div>
   </div>
 </div>
@@ -356,7 +407,7 @@ function wildness(x,y){
 let S=null,P=null,comp=null;
 let enemies=[],projs=[],fx=[],zones=[],summons=[],pickups=[],timers=[],amb=[];
 let cam={x:CAP.x-600,y:CAP.y-400},shakeT=0,shakeA=0,time=0,banner=null,saveT=0,spawnT=4,lastQuestTxt='';
-let dlgOpen=false,helpOpen=false,interact=null,page=0;
+let dlgOpen=false,helpOpen=false,savesOpen=false,interact=null,page=0,autoFlash=0;
 const keys={};const mouse={sx:0,sy:0,wx:0,wy:0,active:false};let attackHeld=false;
 const joy={active:false,id:null,ox:0,oy:0,dx:0,dy:0};
 let touchMode=matchMedia('(pointer: coarse)').matches;
@@ -872,7 +923,7 @@ function questText(){if(!S)return'';
       :'Trouve le sanctuaire de ton clan, hors des routes, et prononce l\'incantation.';
     case 'free':{const p=L.findIndex((s,i)=>!S.learned[i]);
       return p>=0?`${L[p].n} : ${S.lvl>=L[p].lvl?'va voir '+teachLabel(L[p]):'niveau '+L[p].lvl+' requis'}.`
-        :'Tu maîtrises les dix-huit pouvoirs de ton clan. La cachette de Malvorn t\'attend : suite au prochain chapitre.';}
+        :'Tu maîtrises les vingt pouvoirs de ton clan. La cachette de Malvorn t\'attend : suite au prochain chapitre.';}
     default:return lastQuestTxt;}}
 function questTarget(){if(!S)return null;
   switch(S.quest){
@@ -961,32 +1012,77 @@ dlg.addEventListener('click',()=>{if(!dChoice)nextLine();});
 function showBanner(title,sub,life=3.2){banner={title,sub,t:0,life};}
 
 /* ---------- partie ---------- */
-const KEY='elementia-save-v3';
+const SLOTS=['auto','1','2','3'];
+const KEYOF=s=>'elementia-v4-'+s;
+const OLDKEY='elementia-save-v3';
 function initPlayer(x,y){P={x,y,r:12,hp:0,maxHp:100+(S.lvl-1)*22,face:Math.PI/2,inv:1,shield:0,shieldT:0,buffT:0,
   hasteT:0,avatarT:0,divTrail:0,regenT:0,regenR:0,mounted:false,swing:0,swingA:0,walk:0,
   cds:new Array(MAXSP).fill(0),swordCd:0,hazAcc:0,hurtT:0};P.hp=P.maxHp;}
 function resetWorld(){enemies=[];projs=[];fx=[];zones=[];summons=[];pickups=[];timers=[];comp=null;fireSpots.length=0;spawnT=5;interact=null;page=0;}
 function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=true;
   return{name,clan,tunic,lvl:1,xp:0,orbes:0,quest:'tuto',guild:null,mount:false,sword:false,pact:false,divine:-1,
-    learned:l,met:{},disc:{},incant:null,gq:null,gqDone:0,
+    learned:l,met:{},disc:{},incant:null,gq:null,gqDone:0,play:0,
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
 function newGame(name,clan,tunic){resetWorld();S=freshState(name,clan,tunic);
   const c=cityPx(clan);initPlayer(c.x,c.y+3*T);S.disc[clan]=true;
   cam.x=P.x-VW/ZOOM/2;cam.y=P.y-VH/ZOOM/2;startTuto();
   say(TXT.intro(),()=>showBanner('Première quête','Chasse les Oubliés hors du dôme'));}
 function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
-  S.lvl=d.lvl;S.xp=d.xp;S.orbes=d.orbes;S.quest=d.quest;S.guild=d.guild;S.mount=d.mount;
+  S.lvl=d.lvl||1;S.xp=d.xp||0;S.orbes=d.orbes||0;S.quest=d.quest||'tuto';S.guild=d.guild??null;S.mount=!!d.mount;
   S.sword=!!d.sword;S.pact=!!d.pact;S.divine=typeof d.divine==='number'?d.divine:-1;
-  if(Array.isArray(d.learned)&&d.learned.length===NSP)S.learned=d.learned.slice();
+  S.play=d.play||0;
+  if(Array.isArray(d.learned)){for(let i=0;i<NSP;i++)S.learned[i]=!!d.learned[i];S.learned[0]=true;}
   S.met=d.met||{};S.disc=d.disc||{};S.disc[d.clan]=true;S.gqDone=d.gqDone||0;
+  S.gq=(d.gq&&typeof d.gq.need==='number')?d.gq:null;
+  if(typeof d.tutoLeft==='number')S.tutoLeft=d.tutoLeft;
   if(S.quest==='attack'||S.quest==='_')S.quest=S.lvl>=10?'recall':S.lvl>=6?'tour':'grow6';
   const c=cityPx(S.clan);initPlayer(d.x||c.x,d.y||c.y);if(blocked(P.x,P.y,P.r)){P.x=c.x;P.y=c.y;}
-  if(S.quest==='tuto')startTuto();makeComp();
+  if(d.hp)P.hp=clamp(d.hp,1,P.maxHp);
+  if(S.quest==='tuto')startTuto();
+  if(S.gq&&S.gq.type==='camp'){S.gq.spawned=false;startCamp();}
+  makeComp();
   cam.x=P.x-VW/ZOOM/2;cam.y=P.y-VH/ZOOM/2;showBanner('Bon retour, '+S.name,questText(),3);}
-function save(){if(!S||S.quest==='_')return;try{localStorage.setItem(KEY,JSON.stringify({name:S.name,clan:S.clan,tunic:S.tunic,
-  lvl:S.lvl,xp:S.xp,orbes:S.orbes,quest:S.quest,guild:S.guild,mount:S.mount,sword:S.sword,pact:S.pact,divine:S.divine,
-  learned:S.learned,met:S.met,disc:S.disc,gqDone:S.gqDone,x:P.x,y:P.y}));}catch(e){}}
-function readSave(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function stableQuest(){
+  if(S.quest!=='_')return S.quest;
+  if(S.pact)return'free';
+  if(S.lvl>=10)return'recall';
+  if(S.guild!=null)return S.lvl>=6?'tour':'grow6';
+  if(S.sword)return'travel';
+  return'tuto';}
+function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
+  name:S.name,clan:S.clan,tunic:S.tunic,lvl:S.lvl,xp:S.xp,orbes:S.orbes,
+  quest:stableQuest(),guild:S.guild,mount:S.mount,sword:S.sword,pact:S.pact,divine:S.divine,
+  learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
+  x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
+function writeSlot(slot){if(!S||!P)return false;
+  try{localStorage.setItem(KEYOF(slot),JSON.stringify(snapshot()));return true;}catch(e){return false;}}
+function readSlot(slot){try{const r=localStorage.getItem(KEYOF(slot));if(!r)return null;
+  const d=JSON.parse(r);return(d&&d.clan&&CLANS[d.clan])?d:null;}catch(e){return null;}}
+function clearSlot(slot){try{localStorage.removeItem(KEYOF(slot));}catch(e){}}
+function anySave(){for(const s of SLOTS){const d=readSlot(s);if(d)return true;}return false;}
+function latestSave(){let best=null;for(const s of SLOTS){const d=readSlot(s);
+  if(d&&(!best||(d.ts||0)>(best.ts||0)))best=d;}return best;}
+function migrate(){ // reprise d'une ancienne partie enregistrée avant les slots
+  try{if(localStorage.getItem(KEYOF('auto')))return;
+    const r=localStorage.getItem(OLDKEY);if(!r)return;const d=JSON.parse(r);
+    if(d&&d.clan&&CLANS[d.clan]){d.v=4;d.ts=Date.now();localStorage.setItem(KEYOF('auto'),JSON.stringify(d));}
+  }catch(e){}}
+migrate();
+function save(){if(!S||S.quest==='_')return;writeSlot('auto');}
+function slotLabel(d){if(!d)return null;
+  const mn=Math.floor((d.play||0)/60),h=Math.floor(mn/60);
+  const t=d.ts?new Date(d.ts):null;
+  const dt=t?t.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+  const nb=(d.learned||[]).filter(Boolean).length;
+  const q={tuto:'Au village',sword:'En route vers le hameau',travel:'En route vers Astralis',exam:'Examen de magicien',
+    grow6:'Apprentissage',tour:'Tour des maîtres',grow10:'Avant la bataille',recall:'Convoqué par Valerian',
+    attack:'Défense d\'Astralis',pactMaster:'Vers son maître',pactShrine:'Vers la grotte',free:'Libre'}[d.quest]||'En chemin';
+  return{l1:`${d.name} · clan ${GEN[d.clan]} · niveau ${d.lvl}`,
+    l2:`${q} · ${nb}/${NSP} sorts${d.pact?' · pacte divin':''}`,
+    l3:`${dt}${h?' · '+h+' h '+(mn%60)+' min':mn?' · '+mn+' min de jeu':''}`};}
+function exportCode(){try{return btoa(unescape(encodeURIComponent(JSON.stringify(snapshot()))));}catch(e){return'';}}
+function importCode(txt){try{const d=JSON.parse(decodeURIComponent(escape(atob(txt.trim()))));
+  if(!d||!d.clan||!CLANS[d.clan])return null;return d;}catch(e){return null;}}
 
 /* ---------- mise à jour ---------- */
 function update(dt){
@@ -1092,7 +1188,7 @@ function update(dt){
     if(e.kvx||e.kvy){moveEnt(e,e.kvx*dt,e.kvy*dt);const f=Math.exp(-8*dt);e.kvx*=f;e.kvy*=f;if(Math.abs(e.kvx)<2)e.kvx=0;if(Math.abs(e.kvy)<2)e.kvy=0;}
     if(e.def.passive)continue;
     const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;
-    if(!atk&&!e.tuto&&d>2600){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.camp&&d>2600){e.dead=true;continue;}
     if(e.stun>0){e.stun-=dt;e.slow=1;continue;}
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
@@ -1143,7 +1239,8 @@ function update(dt){
       else{P.hp=Math.min(P.maxHp,P.hp+k.v);fx.push({k:'num',x:P.x,y:P.y-34,v:'+'+k.v,col:'#7dffb0',t:0,life:.8});}}}
   pickups=pickups.filter(k=>!k.dead);
   for(const t of timers){t.t-=dt;if(t.t<=0){t.dead=true;t.fn();}}timers=timers.filter(t=>!t.dead);
-  saveT+=dt;if(saveT>8){saveT=0;save();}
+  S.play=(S.play||0)+dt;
+  saveT+=dt;if(saveT>20){saveT=0;if(save()!==false)autoFlash=1.4;}
   lastQuestTxt=questText()||lastQuestTxt;}
 function updCommon(dt){
   for(const f of fx){f.t+=dt;if(f.k==='p'){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.92;f.vy*=.92;}if(f.k==='num')f.y-=40*dt;}
@@ -1741,6 +1838,9 @@ function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact
   if(aimStick.active){ctx.strokeStyle=rgba(C.col,.35);ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(aimStick.ox,aimStick.oy,44,0,TAU);ctx.stroke();
     ctx.fillStyle=rgba(C.col,.3);circ(aimStick.ox+Math.cos(aimStick.a)*44,aimStick.oy+Math.sin(aimStick.a)*44,16);}
+  if(autoFlash>0){const a=Math.min(1,autoFlash);ctx.globalAlpha=a;
+    ctx.font=`600 13px ${FB}`;ctx.textAlign='right';ctx.fillStyle='#7dffb0';
+    ctx.fillText('Partie enregistrée',VW-12-INS.r,VH-24-INS.b);ctx.textAlign='left';ctx.globalAlpha=1;}
   if(P.hurtT>0||P.hp<P.maxHp*.25){const a=P.hurtT>0?P.hurtT:0.15+Math.sin(time*4)*.08;
     const g=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.35,VW/2,VH/2,Math.max(VW,VH)*.7);
     g.addColorStop(0,'rgba(200,20,40,0)');g.addColorStop(1,`rgba(200,20,40,${a})`);ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);}}
@@ -1760,12 +1860,15 @@ function render(){ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#0b0d18';ctx.
   if(S&&P)drawHUD();drawBanner();}
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
-  if(S&&P&&!dlgOpen&&!helpOpen)update(dt);updCommon(dlgOpen||helpOpen?0:dt);render();requestAnimationFrame(frame);}
+  const paused=dlgOpen||helpOpen||savesOpen;
+  if(S&&P&&!paused)update(dt);updCommon(paused?0:dt);
+  if(autoFlash>0)autoFlash-=dt;
+  render();requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 
 /* ---------- entrées ---------- */
 const titleEl=$('#title'),helpEl=$('#help');
-function inGame(){return S&&P&&titleEl.hidden;}
+function inGame(){return S&&P&&titleEl.hidden&&!savesOpen;}
 function castSlot(n){cast(page*(touchMode?TPER:DPER)+n);}
 addEventListener('keydown',e=>{if(!inGame())return;
   if(helpOpen){if(e.code==='Escape'||e.code==='KeyH'){closeHelp();e.preventDefault();}return;}
@@ -1813,6 +1916,52 @@ function closeHelp(){helpOpen=false;helpEl.hidden=true;cv.focus();}
 $('#helpClose').onclick=closeHelp;
 $('#toTitle').onclick=()=>{save();closeHelp();S=null;P=null;resetWorld();dlg.hidden=true;dlgOpen=false;mouse.active=false;buildTitle();titleEl.hidden=false;};
 
+/* ---------- écran des sauvegardes ---------- */
+const savEl=$('#saves'),slotList=$('#slotList'),savMsg=$('#savMsg'),savCode=$('#savCode');
+let savFrom='title';
+function msg(t,good){savMsg.textContent=t;savMsg.style.color=good?'#7dffb0':'#ff8a98';
+  clearTimeout(msg._t);msg._t=setTimeout(()=>{savMsg.textContent='';},4000);}
+function openSaves(from){savFrom=from;savesOpen=true;attackHeld=false;for(const k in keys)keys[k]=false;
+  savMsg.textContent='';savCode.value='';buildSlots();savEl.hidden=false;$('#savClose').focus();}
+function closeSaves(){savesOpen=false;savEl.hidden=true;
+  if(savFrom==='game'){cv.focus();}else{buildTitle();titleEl.hidden=false;}}
+function buildSlots(){
+  const inGameNow=!!(S&&P);
+  $('#savTitle').textContent=inGameNow?'Sauvegarder ou charger':'Charger une partie';
+  slotList.innerHTML='';
+  SLOTS.forEach(s=>{
+    const d=readSlot(s),info=slotLabel(d),row=document.createElement('div');row.className='slot';
+    const box=document.createElement('div');box.className='info';
+    const nm=document.createElement('div');nm.className='nm';
+    nm.textContent=s==='auto'?'Automatique':'Emplacement '+s;box.appendChild(nm);
+    if(info){for(const k of['l1','l2','l3']){const e=document.createElement('div');e.className=k;e.textContent=info[k];box.appendChild(e);}}
+    else{const e=document.createElement('div');e.className='l2';e.textContent='Vide';box.appendChild(e);}
+    row.appendChild(box);
+    const acts=document.createElement('div');acts.className='acts';
+    if(info){const b=document.createElement('button');b.className='sbtn';b.type='button';b.textContent='Charger';
+      b.onclick=()=>{const dd=readSlot(s);if(!dd)return;savesOpen=false;savEl.hidden=true;titleEl.hidden=true;
+        dlg.hidden=true;dlgOpen=false;loadGame(dd);cv.focus();};acts.appendChild(b);}
+    if(inGameNow&&s!=='auto'){const b=document.createElement('button');b.className='sbtn';b.type='button';
+      b.textContent=info?'Remplacer':'Sauvegarder ici';
+      b.onclick=()=>{if(writeSlot(s)){msg('Partie enregistrée dans l\'emplacement '+s+'.',1);buildSlots();}
+        else msg('Impossible d\'enregistrer : ton navigateur refuse de stocker les données.');};acts.appendChild(b);}
+    if(info&&s!=='auto'){const b=document.createElement('button');b.className='sbtn danger';b.type='button';b.textContent='Effacer';
+      b.onclick=()=>{clearSlot(s);buildSlots();msg('Emplacement '+s+' effacé.',1);};acts.appendChild(b);}
+    row.appendChild(acts);slotList.appendChild(row);});}
+$('#savClose').onclick=closeSaves;
+$('#openSaves').onclick=()=>{helpOpen=false;helpEl.hidden=true;openSaves('game');};
+$('#loadBtn').onclick=()=>{titleEl.hidden=true;openSaves('title');};
+$('#loadBtn2').onclick=()=>{titleEl.hidden=true;openSaves('title');};
+$('#savExport').onclick=()=>{if(!S||!P){msg('Lance ou charge une partie pour obtenir son code.');return;}
+  savCode.value=exportCode();savCode.select();msg('Code affiché : copie-le et garde-le.',1);};
+$('#savCopy').onclick=async()=>{if(!savCode.value){msg('Affiche d\'abord ton code.');return;}
+  try{await navigator.clipboard.writeText(savCode.value);msg('Code copié.',1);}
+  catch(e){savCode.select();msg('Sélectionne le texte et fais Ctrl+C.');}};
+$('#savImport').onclick=()=>{const d=importCode(savCode.value||'');
+  if(!d){msg('Ce code n\'est pas valide. Vérifie que tu l\'as collé en entier.');return;}
+  savesOpen=false;savEl.hidden=true;titleEl.hidden=true;dlg.hidden=true;dlgOpen=false;
+  loadGame(d);writeSlot('auto');cv.focus();};
+
 /* ---------- écran titre ---------- */
 const pick={clan:'elec',tunic:TUNICS[0]};
 function buildTitle(){const box=$('#clans');box.innerHTML='';
@@ -1825,10 +1974,10 @@ function buildTitle(){const box=$('#clans');box.innerHTML='';
   TUNICS.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.className='sw';
     b.style.setProperty('--c',t);b.setAttribute('aria-label','Tunique '+(i+1));b.setAttribute('aria-pressed',String(pick.tunic===t));
     b.onclick=()=>{pick.tunic=t;buildTitle();};sw.appendChild(b);});
-  const sv=readSave();$('#contRow').hidden=!sv;
+  const sv=latestSave();$('#contRow').hidden=!sv;$('#noSaveRow').hidden=!!sv;
   if(sv)$('#contInfo').textContent=`${sv.name} · clan ${GEN[sv.clan]} · niveau ${sv.lvl} · ${(sv.learned||[]).filter(Boolean).length}/${NSP} sorts`;}
 $('#startBtn').onclick=()=>{const name=($('#nameIn').value||'').trim()||'Léon';titleEl.hidden=true;newGame(name,pick.clan,pick.tunic);cv.focus();};
-$('#contBtn').onclick=()=>{const sv=readSave();if(!sv)return;titleEl.hidden=true;loadGame(sv);cv.focus();};
+$('#contBtn').onclick=()=>{const sv=latestSave();if(!sv)return;titleEl.hidden=true;loadGame(sv);cv.focus();};
 buildTitle();
 // console de test : ouvrir la page avec ?dbg à la fin de l'adresse
 if(location.search.indexOf('dbg')>=0)window.E={

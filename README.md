@@ -34,9 +34,13 @@ Chaque clan supporte son propre terrain : la lave ne brûle pas le clan du feu, 
 
 ## Les pouvoirs
 
-Chaque clan possède dix-huit pouvoirs, débloqués des niveaux 1 à 30. Atteindre le niveau ne suffit pas : il faut trouver le maître qui enseigne le sort. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même.
+Chaque clan possède vingt pouvoirs, débloqués des niveaux 1 à 32. Atteindre le niveau ne suffit pas : il faut trouver le maître qui enseigne le sort. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même.
 
 À cela s'ajoute un pouvoir divin, scellé par un pacte avec le dieu de ton clan, à choisir parmi six.
+
+## Sauvegarde
+
+La partie s'enregistre toute seule toutes les vingt secondes. Trois emplacements supplémentaires se gèrent à la main depuis le menu (touche H), et un code de sauvegarde permet de reprendre la partie sur un autre ordinateur.
 
 ## L'aventure
 
