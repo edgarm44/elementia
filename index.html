@@ -323,6 +323,10 @@ const ORYN={x:CAP.x-8.5*T,y:(CY-7)*T};
 const ZEPH={x:ARENA.x+ARENA.r+2.5*T,y:ARENA.y-ARENA.r-T};
 const GUILDH={x:CAP.x+9.5*T,y:(CY+2)*T};
 const COUNCIL={x:CAP.x-9.5*T,y:(CY+2)*T};
+// bâtiments que le conseil impérial peut faire construire pour de vrai, selon tes décisions
+const TEMPLE={x:CAP.x+16*T,y:(CY+10)*T};
+const ACADEMY={x:CAP.x-16*T,y:(CY+10)*T};
+const GUARDPOST=[{x:CAP.x-6*T,y:(CY+3.5)*T},{x:CAP.x+6*T,y:(CY+3.5)*T}];
 // ombres de nuages qui dérivent lentement sur la carte (effet de profondeur façon "parallax" vu du dessus)
 const CLOUDS=(()=>{const a=[];for(let i=0;i<7;i++)a.push({x0:rnd(0,W*T),y0:rnd(0,H*T),r:rnd(260,480),vx:rnd(7,16)*(i%2?1:-1),vy:rnd(-5,5),ph:rnd(0,TAU)});return a;})();
 function cloudAt(c,t){const span=Math.max(W,H)*T+c.r*2;
@@ -900,7 +904,12 @@ function cast(i){if(i==null||i<0||i>=MAXSP)return;const sp=spellAt(i);
   else{if(!sp)return;
     if(S.lvl<sp.lvl){showBanner(sp.n,'Débloqué au niveau '+sp.lvl,1.8);return;}
     if(!S.learned[i]){showBanner(sp.n,'À apprendre auprès de '+teachLabel(sp),2.2);return;}}
-  if(P.cds[i]>0)return;P.mounted=false;P.flying=false;sp.c(aimAngle());P.cds[i]=cdOf(sp);}
+  if(P.cds[i]>0)return;P.mounted=false;P.flying=false;const a=aimAngle();castFlourish(a,sp);sp.c(a);P.cds[i]=cdOf(sp);}
+// petit éclat à la main à chaque sort lancé - même les sorts simples ont désormais un geste visible
+function castFlourish(a,sp){const c=CL().col,g=CL().glow,big=sp.cd>=15,hx=P.x+Math.cos(a)*16,hy=P.y-6+Math.sin(a)*16;
+  for(let k=0;k<(big?7:3);k++){const sa=a+rnd(-.55,.55);
+    fx.push({k:'spark',x:hx,y:hy,a:sa,len:rnd(big?22:10,big?40:22),t:0,life:rnd(.16,big?.34:.22),col:k%2?g:c});}
+  ring(hx,hy,4,big?30:16,g,.4,big?3:2);}
 function toggleMount(){
   if(!S.mount&&!S.fly){showBanner('Pas encore de monture','Elle te rejoindra plus tard',1.8);return;}
   if(P.flying){P.flying=false;burst(P.x,P.y,CL().glow,16,160);return;}
@@ -1143,7 +1152,7 @@ const DECISIONS=[
    options:[{label:'Les chasser jusqu\'au dernier',sub:'+70 orbes de butin',title:'le Sans-Pitié',orbes:70},
             {label:'Leur offrir une terre, au nord',sub:'+30 orbes, la paix a un prix',title:'le Clément',orbes:30}]},
   {id:'succession',prompt:'Maître Oryn te demande qui formera les prochains magiciens, maintenant que ton propre maître n\'est plus.',
-   options:[{label:'Rouvrir son académie',sub:'+60 orbes investis, bien rendus',title:'le Bâtisseur',orbes:60},
+   options:[{label:'Rouvrir son académie',sub:'Une vraie académie s\'élève à l\'ouest d\'Astralis · -60 orbes',title:'le Bâtisseur',orbes:-60,effect:'academy'},
             {label:'Enseigner toi-même, parfois',sub:'+40 orbes, moins de temps pour toi',title:'le Maître',orbes:40}]},
   {id:'quatreclans',prompt:'Les quatre clans te demandent chacun plus d\'autonomie, maintenant que tu portes la couronne.',
    options:[{label:'Un seul royaume, une seule loi',sub:'+100 orbes de tributs unifiés',title:'l\'Unificateur',orbes:100},
@@ -1152,14 +1161,26 @@ const DECISIONS=[
    options:[{label:'La raser, et semer du sel',sub:'+50 orbes de métal fondu',title:'celui-qui-efface',orbes:50},
             {label:'La garder comme prison',sub:'+80 orbes de rançons',title:'le Geôlier',orbes:80}]},
   {id:'temple',prompt:'Les prêtres veulent un temple commun aux quatre dieux, au cœur d\'Astralis.',
-   options:[{label:'Financer sa construction',sub:'-40 orbes, mais +120 en offrandes, bien plus tard',title:'le Pieux',orbes:-40},
+   options:[{label:'Financer sa construction',sub:'Un temple s\'élève vraiment à l\'est d\'Astralis · -40 orbes',title:'le Pieux',orbes:-40,effect:'temple'},
             {label:'Refuser : un dieu, un clan',sub:'+20 orbes gardés',title:'le Traditionnel',orbes:20}]},
   {id:'garde',prompt:'Faut-il une garde impériale permanente à Astralis ?',
-   options:[{label:'Oui, recrutée dans les quatre clans',sub:'-30 orbes de solde, mais la ville est sûre',title:'le Protecteur',orbes:-30},
+   options:[{label:'Oui, recrutée dans les quatre clans',sub:'Des gardes postés aux portes de la ville · -30 orbes de solde',title:'le Protecteur',orbes:-30,effect:'guard'},
             {label:'Non, tu suffis',sub:'+60 orbes économisés',title:'le Solitaire',orbes:60}]},
   {id:'fetes',prompt:'Le peuple demande une fête pour célébrer la victoire sur Malvorn.',
-   options:[{label:'Une grande fête, à tes frais',sub:'-50 orbes, le peuple t\'adore',title:'le Généreux',orbes:-50},
-            {label:'Une cérémonie sobre',sub:'+25 orbes gardés',title:'l\'Austère',orbes:25}]}];
+   options:[{label:'Une grande fête, à tes frais',sub:'Des guirlandes et des feux sur la grande place, pour de vrai · -50 orbes',title:'le Généreux',orbes:-50,effect:'festival'},
+            {label:'Une cérémonie sobre',sub:'+25 orbes gardés',title:'l\'Austère',orbes:25}]},
+  {id:'muraille',prompt:'Les ingénieurs proposent de renforcer les murailles d\'Astralis contre une prochaine guerre.',
+   options:[{label:'Financer les fortifications',sub:'-70 orbes, mais le royaume dort tranquille',title:'le Prévoyant',orbes:-70},
+            {label:'Le trésor avant les pierres',sub:'+45 orbes gardés',title:'l\'Économe',orbes:45}]},
+  {id:'commerce',prompt:'Les quatre cités proposent un marché commun, ouvert à tous les clans, à Astralis.',
+   options:[{label:'Ouvrir le grand marché',sub:'+140 orbes de taxes commerciales',title:'le Marchand',orbes:140},
+            {label:'Garder les marchés séparés',sub:'+35 orbes, la tradition rassure',title:'le Conservateur',orbes:35}]},
+  {id:'bibliotheque',prompt:'Les érudits veulent consigner l\'histoire de la guerre contre Malvorn dans une grande bibliothèque.',
+   options:[{label:'La financer',sub:'-35 orbes, ton nom traversera les siècles',title:'le Mémorieux',orbes:-35},
+            {label:'L\'histoire se racontera seule',sub:'+15 orbes gardés',title:'le Discret',orbes:15}]},
+  {id:'monnaie',prompt:'Faut-il frapper une monnaie impériale unique, à ton effigie, pour remplacer les orbes de chaque clan ?',
+   options:[{label:'Oui, une seule monnaie pour tous',sub:'+110 orbes de conversion',title:'l\'Empereur-pièce',orbes:110},
+            {label:'Chaque clan garde la sienne',sub:'+40 orbes, moins de tracas',title:'le Prudent',orbes:40}]}];
 function openCouncil(){
   S.decisions=S.decisions||[];
   const left=DECISIONS.filter(d=>!S.decisions.includes(d.id));
@@ -1170,6 +1191,8 @@ function openCouncil(){
   const d=left[0];
   say([{who:'Maître Oryn',text:d.prompt,choices:d.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
     S.decisions.push(d.id);S.orbes=Math.max(0,S.orbes+o.orbes);S.title=o.title;
+    if(o.effect){S.council=S.council||{};S.council[o.effect]=true;
+      burst(COUNCIL.x,COUNCIL.y,'#e6c46a',40,280);}
     showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);}
 function makeCamps(){S.camps=[];
   for(const k of tourKeys()){const c=cityPx(k),a=Math.atan2(CAP.y-c.y,CAP.x-c.x)+1.1;
@@ -1467,7 +1490,7 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
   return{name,clan,tunic,lvl:1,xp:0,orbes:0,quest:'tuto',guild:null,mount:false,fly:false,sword:false,pact:false,divine:-1,
     learned:l,met:{},disc:{},incant:null,incantKind:null,gq:null,gqDone:0,play:0,
     divines:[],pact2:false,pact2started:false,masterDead:false,valerianDead:false,emperor:false,questBefore:null,camps:null,gods:[],bless:[],
-    decisions:[],title:null,
+    decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false},
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1492,6 +1515,7 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.camps=Array.isArray(d.camps)?d.camps.map(c=>Object.assign({},c,{spawned:false})):null;
   S.gods=Array.isArray(d.gods)?d.gods.slice():[];S.bless=Array.isArray(d.bless)?d.bless.slice():[];
   S.decisions=Array.isArray(d.decisions)?d.decisions.slice():[];S.title=d.title||null;
+  S.council=(d.council&&typeof d.council==='object')?Object.assign({temple:false,academy:false,guard:false,festival:false},d.council):{temple:false,academy:false,guard:false,festival:false};
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
@@ -1521,7 +1545,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   quest:stableQuest(),guild:S.guild,mount:S.mount,fly:S.fly,sword:S.sword,pact:S.pact,divine:S.divine,
   divines:S.divines,pact2:S.pact2,pact2started:S.pact2started,masterDead:S.masterDead,valerianDead:S.valerianDead,emperor:S.emperor,
   camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,talents:S.talents,
-  decisions:S.decisions,title:S.title,
+  decisions:S.decisions,title:S.title,council:S.council,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -1969,6 +1993,40 @@ function drawGrave(x,y,label){
   ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#cfe9ff',.12+Math.sin(time*1.4)*.04);circ(x,y-10,20);
   ctx.globalCompositeOperation='source-over';
   nameTag(x,y-34,label,'#cfc7b4');}
+// les bâtiments que le conseil impérial a réellement fait construire, selon tes décisions
+function drawTemple(){const x=TEMPLE.x,y=TEMPLE.y;
+  softShadow(x,y+30,70,16,.3);
+  ctx.fillStyle='#e8ddbd';ctx.beginPath();ctx.ellipse(x,y+10,66,28,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#d8c99a';ctx.fillRect(x-70,y-6,140,18);
+  for(let k=0;k<6;k++){const px=x-58+k*23;
+    ctx.fillStyle='#efe6c8';ctx.fillRect(px-5,y-54,10,52);
+    ctx.fillStyle=shade('#efe6c8',-0.15);ctx.fillRect(px-5,y-54,3,52);}
+  ctx.fillStyle='#c9a64a';poly([[x-78,y-54],[x,y-98],[x+78,y-54]]);
+  ctx.fillStyle=shade('#c9a64a',0.2);poly([[x-78,y-54],[x,y-98],[x-10,y-92]]);
+  const cols=['elec','fire','water','wind'];
+  for(let k=0;k<4;k++){ctx.globalCompositeOperation='lighter';
+    ctx.fillStyle=rgba(CLANS[cols[k]].col,.3+Math.sin(time*2+k)*.08);circ(x-45+k*30,y-70,8);ctx.globalCompositeOperation='source-over';}
+  bigLabel(x,y-112,'Temple des Quatre Dieux','#e6c46a',20);}
+function drawAcademy(){const x=ACADEMY.x,y=ACADEMY.y;
+  softShadow(x,y+28,60,14,.3);
+  ctx.fillStyle='#8a7a5e';ctx.fillRect(x-56,y-44,112,52);
+  ctx.fillStyle=shade('#8a7a5e',0.18);ctx.fillRect(x-56,y-44,112,6);
+  ctx.fillStyle='#5a4a36';poly([[x-60,y-44],[x,y-76],[x+60,y-44]]);
+  ctx.fillStyle='#f6d98a';ctx.fillRect(x-14,y-28,10,14);ctx.fillRect(x+4,y-28,10,14);
+  for(let k=0;k<3;k++){const sx=x-30+k*30;
+    drawPerson(sx,y+14,{s:.74,face:Math.PI/2,body:'#cfe9da',trim:'#7a9b84',skin:'#e3bd98',hair:'#6a523c',robe:true});}
+  bigLabel(x,y-88,'Académie d\'Astralis','#9fd9ff',20);}
+function drawGuards(){const C=S&&S.clan?CLANS[S.clan]:{col:'#c9c2b0'};
+  for(const g of GUARDPOST)drawPerson(g.x,g.y,{s:.95,face:-Math.PI/2,body:shade(C.col,-0.5),trim:C.col,skin:'#e3bd98',hair:'#2a2420',staff:C.col});}
+function drawFestival(){const x=CAP.x,y=CAP.y;
+  ctx.save();ctx.strokeStyle=rgba('#e6c46a',.5);ctx.lineWidth=2;
+  for(let k=0;k<5;k++){const a=k/5*TAU;
+    ctx.beginPath();ctx.moveTo(x+Math.cos(a)*30,y+Math.sin(a)*30-60);
+    ctx.quadraticCurveTo(x,y-20,x+Math.cos(a+1)*30,y+Math.sin(a+1)*30-60);ctx.stroke();}
+  ctx.restore();
+  if(Math.random()<.35){const a=rnd(0,TAU),cols=['#ff6a7a','#7fdcff','#ffe04a','#9fd98a'];
+    fx.push({k:'p',x:x+Math.cos(a)*rnd(10,50),y:y-60+rnd(0,10),vx:rnd(-20,20),vy:rnd(20,50),
+      col:cols[Math.floor(rnd(0,4))],t:0,life:rnd(.8,1.4),s:rnd(2,4)});}}
 function drawPlayer(){const C=CL(),blink=P.inv>0&&P.hp>0&&Math.floor(time*20)%2===0&&P.inv<1.8,oy=P.flying?-30:P.mounted?-12:0;
   if(P.flying)drawFlyer(P.x,P.y,P.face,S.clan);
   else if(P.mounted)drawMount(P.x,P.y,P.face,S.clan,P.walk);
@@ -2023,7 +2081,10 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
       ctx.fillStyle=rgba('#ffb347',.3);circ(z.x,z.y-4,z.r*.55);ctx.globalCompositeOperation='source-over';
       if(Math.random()<.5)amb.push({k:'ember',x:z.x+rnd(-z.r,z.r),y:z.y,vx:0,vy:rnd(-80,-40),t:0,life:.6});}
     else if(z.k==='aura'||z.k==='vac'){ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba(CL().col,.1);circ(z.x,z.y,z.r);
-      ctx.strokeStyle=rgba(CL().glow,.4);ctx.lineWidth=2;ctx.beginPath();ctx.arc(z.x,z.y,z.r*(.9+Math.sin(time*5)*.05),0,TAU);ctx.stroke();ctx.globalCompositeOperation='source-over';}
+      ctx.strokeStyle=rgba(CL().glow,.4);ctx.lineWidth=2;ctx.beginPath();ctx.arc(z.x,z.y,z.r*(.9+Math.sin(time*5)*.05),0,TAU);ctx.stroke();
+      for(let k=0;k<5;k++){const a=time*2.2+k*TAU/5;ctx.fillStyle=rgba('#ffffff',.5);
+        circ(z.x+Math.cos(a)*z.r*.82,z.y+Math.sin(a)*z.r*.82,2);}
+      ctx.globalCompositeOperation='source-over';}
     else if(z.k==='slow'){ctx.fillStyle=rgba('#3fb2ff',.18*Math.min(1,z.life));circ(z.x,z.y,z.r);}
     else if(z.k==='slowdmg'){ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#a6ecff',.16);circ(z.x,z.y,z.r);
       ctx.globalCompositeOperation='source-over';ctx.strokeStyle=rgba('#d9f7ff',.4);ctx.lineWidth=2;
@@ -2040,6 +2101,8 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
       ctx.fillStyle=rgba(CL().glow,p);circ(z.x,z.y,3.5);}
     else if(z.k==='orbit'){ctx.globalCompositeOperation='lighter';
       for(let o=0;o<z.n;o++){const a=z.rot+o*TAU/z.n,ox=z.x+Math.cos(a)*z.r,oy=z.y+Math.sin(a)*z.r;
+        for(let k=1;k<=3;k++){const ta=a-k*.12,tx=z.x+Math.cos(ta)*z.r,ty=z.y+Math.sin(ta)*z.r;
+          ctx.fillStyle=rgba(CL().col,.18/k);circ(tx,ty,5-k);}
         ctx.fillStyle=rgba(CL().glow,.3);circ(ox,oy,14);ctx.fillStyle=CL().col;circ(ox,oy,6);
         ctx.fillStyle='#ffffff';circ(ox,oy,2.5);}
       ctx.globalCompositeOperation='source-over';}}
@@ -2079,9 +2142,14 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
     case 6:{const zc=CLANS[OPP[S.clan]];drawPerson(ZEPH.x,ZEPH.y,{face:Math.PI*.75,body:shade(zc.col,-0.4),trim:zc.col,skin:'#e3bd98',hair:'#c9ccd6'});
       nameTag(ZEPH.x,ZEPH.y-36,'Zephyr',zc.col);break;}}
   ctx.globalCompositeOperation='lighter';
-  for(const p of projs){ctx.fillStyle=rgba(p.glow||p.col,.28);circ(p.x,p.y,p.r*2.6);ctx.fillStyle=p.col;circ(p.x,p.y,p.r);
-    ctx.fillStyle='#ffffff';circ(p.x,p.y,p.r*.45);
-    ctx.strokeStyle=rgba(p.col,.45);ctx.lineWidth=p.r;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*.03,p.y-p.vy*.03);ctx.stroke();}
+  for(const p of projs){const ang=Math.atan2(p.vy,p.vx);
+    for(let k=1;k<=3;k++){ctx.fillStyle=rgba(p.col,.24/k);circ(p.x-p.vx*.014*k,p.y-p.vy*.014*k,p.r*(1-.2*k));}
+    ctx.fillStyle=rgba(p.glow||p.col,.3);circ(p.x,p.y,p.r*2.8);
+    ctx.strokeStyle=rgba(p.col,.5);ctx.lineWidth=p.r*.9;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*.035,p.y-p.vy*.035);ctx.stroke();
+    ctx.fillStyle=p.col;circ(p.x,p.y,p.r);ctx.fillStyle='#ffffff';circ(p.x,p.y,p.r*.45);
+    for(let k=0;k<2;k++){const sa=time*14+k*Math.PI+ang;
+      ctx.fillStyle=rgba('#ffffff',.5);circ(p.x+Math.cos(sa)*p.r*1.7,p.y+Math.sin(sa)*p.r*1.7,1.3);}}
   ctx.globalCompositeOperation='source-over';
   for(const s of summons)if(s.fly)drawSummon(s);
   for(const z of zones){
@@ -2119,13 +2187,25 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
       ctx.strokeStyle=rgba(f.col,a);ctx.lineWidth=3*a+.6;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(f.x+cx*r0,f.y+sn*r0);ctx.lineTo(f.x+cx*r1,f.y+sn*r1);ctx.stroke();ctx.lineCap='butt';}
     else if(f.k==='flash'){ctx.fillStyle=rgba(f.col||'#ffffff',a*a*.4);ctx.fillRect(cam.x,cam.y,vw,vh);}
-    else if(f.k==='bolt'){ctx.strokeStyle=rgba(f.col,a);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(f.pts[0][0],f.pts[0][1]);
+    else if(f.k==='bolt'){ctx.strokeStyle=rgba(f.col,a*.4);ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(f.pts[0][0],f.pts[0][1]);
+      for(const q of f.pts)ctx.lineTo(q[0],q[1]);ctx.stroke();
+      ctx.strokeStyle=rgba(f.col,a);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(f.pts[0][0],f.pts[0][1]);
       for(const q of f.pts)ctx.lineTo(q[0]+rnd(-2,2),q[1]+rnd(-2,2));ctx.stroke();
       ctx.strokeStyle=rgba('#ffffff',a*.8);ctx.lineWidth=1;ctx.stroke();}
-    else if(f.k==='beam'){const c=Math.cos(f.a),s=Math.sin(f.a);ctx.strokeStyle=rgba(f.col,a*.8);ctx.lineWidth=f.w*2*a;
+    else if(f.k==='beam'){const c=Math.cos(f.a),s=Math.sin(f.a);
+      ctx.strokeStyle=rgba(f.col,a*.35);ctx.lineWidth=f.w*3.4*a;
       ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+c*f.len,f.y+s*f.len);ctx.stroke();
-      ctx.strokeStyle=rgba('#ffffff',a*.7);ctx.lineWidth=f.w*.5*a;ctx.stroke();}
-    else if(f.k==='trail'){ctx.strokeStyle=rgba(f.col,a*.7);ctx.lineWidth=14*a;ctx.lineCap='round';
+      ctx.strokeStyle=rgba(f.col,a*.8);ctx.lineWidth=f.w*2*a;
+      ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+c*f.len,f.y+s*f.len);ctx.stroke();
+      ctx.strokeStyle=rgba('#ffffff',a*.7);ctx.lineWidth=f.w*.5*a;ctx.stroke();
+      for(let k=0;k<6;k++){const d=(k+.5)/6*f.len,jx=-s*rnd(4,16)*(k%2?1:-1),jy=c*rnd(4,16)*(k%2?1:-1);
+        ctx.strokeStyle=rgba(f.col,a*.5);ctx.lineWidth=1.4;
+        ctx.beginPath();ctx.moveTo(f.x+c*d,f.y+s*d);ctx.lineTo(f.x+c*d+jx,f.y+s*d+jy);ctx.stroke();}}
+    else if(f.k==='trail'){ctx.strokeStyle=rgba(f.col,a*.3);ctx.lineWidth=22*a;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(f.x1,f.y1);ctx.lineTo(f.x2,f.y2);ctx.stroke();
+      ctx.strokeStyle=rgba(f.col,a*.7);ctx.lineWidth=14*a;
+      ctx.beginPath();ctx.moveTo(f.x1,f.y1);ctx.lineTo(f.x2,f.y2);ctx.stroke();
+      ctx.strokeStyle=rgba('#ffffff',a*.5);ctx.lineWidth=4*a;
       ctx.beginPath();ctx.moveTo(f.x1,f.y1);ctx.lineTo(f.x2,f.y2);ctx.stroke();ctx.lineCap='butt';}
     else if(f.k==='p'){const sz=f.s*(1-p*.45);ctx.fillStyle=rgba(f.col,a);
       ctx.beginPath();ctx.arc(f.x,f.y,Math.max(.4,sz/2),0,TAU);ctx.fill();}}
@@ -2149,7 +2229,11 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
     ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e6c46a',.1+Math.sin(time*1.4)*.03);circ(COUNCIL.x,COUNCIL.y,54);
     ctx.globalCompositeOperation='source-over';
     if(left){ctx.font=`700 26px ${FB}`;ctx.textAlign='center';ctx.fillStyle='#e6c46a';
-      ctx.fillText('!',COUNCIL.x,COUNCIL.y-66);ctx.textAlign='left';}}
+      ctx.fillText('!',COUNCIL.x,COUNCIL.y-66);ctx.textAlign='left';}
+    if(S.council&&S.council.temple)drawTemple();
+    if(S.council&&S.council.academy)drawAcademy();
+    if(S.council&&S.council.guard)drawGuards();
+    if(S.council&&S.council.festival)drawFestival();}
   for(const v of VILLAGES){const px=v.x*T,py=v.y*T;
     if(px+400<cam.x||px-400>cam.x+vw||py+400<cam.y||py-400>cam.y+vh)continue;
     bigLabel(px,py-(VILR+1)*T,v.name,shade(CLANS[v.clan].col,-0.1),20);
