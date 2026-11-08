@@ -85,6 +85,16 @@ input[type=text]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .sbtn:hover{border-color:var(--gold);color:var(--gold)}
 .sbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .sbtn.danger:hover{border-color:#e0485a;color:#ff8a98}
+.gmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:60vh;overflow-y:auto}
+.gmcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;
+  background:rgba(255,255,255,.025);position:relative}
+.gmcard.pinned{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.gmcard.locked{opacity:.45}
+.gmcard .gnm{font-weight:700;font-size:14px;padding-right:22px}
+.gmcard .gsub{font-size:12px;color:var(--muted)}
+.gmpin{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;line-height:1;padding:2px}
+.gmpin.on{color:var(--gold)}
+.gmpin:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 textarea{font:inherit;font-size:13px;width:100%;box-sizing:border-box;color:var(--ink);background:#0a0c18;
   border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical;-webkit-user-select:text;user-select:text;
   word-break:break-all}
@@ -102,7 +112,7 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   <div class="card">
     <div>
       <h1>Élémentia</h1>
-      <p class="tag">Quatre clans en guerre, un trône à Astralis, et un enfant qui rêve de paix. Choisis ton clan, apprends vingt pouvoirs auprès des maîtres du royaume, scelle un pacte avec ton dieu, et deviens assez fort pour unir les quatre cités.</p>
+      <p class="tag">Quatre clans en guerre, un trône à Astralis, et un enfant qui rêve de paix. Choisis ton clan, apprends vingt-quatre pouvoirs auprès des maîtres du royaume, scelle deux pactes avec ton dieu, et deviens assez fort pour unir les quatre cités.</p>
     </div>
     <div class="row" id="contRow" hidden>
       <button class="btn" id="contBtn" type="button">Continuer</button>
@@ -127,7 +137,7 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <div class="row">
       <button class="btn" id="startBtn" type="button">Commencer l'aventure</button>
     </div>
-    <p class="keys"><b>ZQSD</b> ou flèches : se déplacer · <b>Souris</b> : viser · <b>Clic</b> ou <b>Espace</b> : épée · <b>1</b> à <b>0</b> : sorts · <b>Tab</b> : changer de page · <b>R</b> : pouvoir divin · <b>E</b> : parler, portail · <b>M</b> : monture · <b>H</b> : menu et sauvegarde. Sur tablette : joystick à gauche pour marcher, doigt à droite pour viser, boutons pour frapper.</p>
+    <p class="keys"><b>ZQSD</b> ou flèches : se déplacer · <b>Souris</b> : viser · <b>Clic</b> ou <b>Espace</b> : épée · <b>1</b> à <b>0</b> : les dix sorts de ta barre · <b>B</b> : grimoire pour choisir tes dix sorts favoris · <b>R T F G V</b> : pouvoirs divins (selon ton pacte) · <b>E</b> : parler, portail · <b>M</b> : monture · <b>H</b> : menu et sauvegarde. Sur tablette : joystick à gauche pour marcher, doigt à droite pour viser, boutons pour frapper, et le livre pour ouvrir le grimoire.</p>
   </div>
 </div>
 
@@ -138,8 +148,9 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       <span><b>ZQSD / WASD / flèches</b> : se déplacer</span>
       <span><b>Souris</b> : viser</span>
       <span><b>Clic gauche / Espace</b> : coup d'épée</span>
-      <span><b>1</b> à <b>9</b> et <b>0</b> : les dix sorts de la page</span>
-      <span><b>Tab</b> : passer à l'autre page de sorts</span>
+      <span><b>1</b> à <b>9</b> et <b>0</b> : les dix sorts épinglés dans ta barre</span>
+      <span><b>B</b> : ouvrir le grimoire et épingler d'autres sorts</span>
+      <span><b>R T F G V</b> : tes pouvoirs divins, un par pacte scellé</span>
       <span><b>R</b> : pouvoir divin</span>
       <span><b>E</b> : parler, prendre un objet, portail, registre</span>
       <span><b>M</b> : monter ou descendre de ta monture</span>
@@ -149,7 +160,7 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <h2>Viser</h2>
     <p class="keys">Le réticule suit ta souris et la ligne en pointillés montre où part le sort. Quand le réticule frôle un ennemi, la visée s'accroche à lui : il se marque de quatre crochets rouges et tous tes sorts partent sur son centre. Sans souris, la visée se verrouille toute seule sur l'ennemi le plus proche. Sur tablette, glisse le doigt sur la moitié droite de l'écran pour viser.</p>
     <h2>Apprendre les pouvoirs</h2>
-    <p class="keys">Chaque clan possède vingt pouvoirs, plus un pouvoir divin. Atteindre le niveau requis ne suffit pas : il faut trouver le maître qui enseigne le sort et lui parler. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même. Les sorts verrouillés indiquent où aller.</p>
+    <p class="keys">Chaque clan possède vingt-quatre pouvoirs, plus cinq pouvoirs divins obtenus en deux pactes. Atteindre le niveau requis ne suffit pas : il faut trouver le maître qui enseigne le sort et lui parler. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même. Les sorts verrouillés indiquent où aller.</p>
     <h2>Sauvegarder</h2>
     <p class="keys">La partie s'enregistre toute seule toutes les vingt secondes dans l'emplacement automatique. Le bouton Sauvegarder ci-dessous ouvre trois emplacements supplémentaires que tu gères toi-même, et un code de sauvegarde à copier pour retrouver ta partie sur un autre ordinateur.</p>
     <h2>Le royaume</h2>
@@ -182,6 +193,19 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     </div>
     <div class="row">
       <button class="btn" id="savClose" type="button">Retour</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="grimoire" hidden>
+  <div class="card">
+    <div>
+      <h2>Grimoire</h2>
+      <p class="keys">Choisis jusqu'à dix sorts à garder dans ta barre rapide (touches 1 à 0). Clique une étoile pour épingler ou retirer un sort ; le reste du grimoire reste consultable ici à tout moment.</p>
+    </div>
+    <div id="gmGrid" class="gmgrid"></div>
+    <div class="row">
+      <button class="btn" id="gmClose" type="button">Retour</button>
     </div>
   </div>
 </div>
@@ -249,7 +273,7 @@ const GUILDS=[
 ];
 
 /* ---------- carte ---------- */
-const T=40,W=300,H=300,CX=150,CY=150,OFF=86,CAPR=27,CITYR=17,VILR=6;
+const T=40,W=300,H=300,CX=150,CY=150,OFF=74,CAPR=34,CITYR=17,VILR=6;
 const tiles=new Uint8Array(W*H),bio=new Uint8Array(W*H),vari=new Uint8Array(W*H),bvar=new Uint8Array(W*H);
 const floorCol=new Array(W*H);
 const PAL=[
@@ -257,11 +281,12 @@ const PAL=[
   {g:['#3c4170','#444a7c','#4d5488'],city:'#656da4',road:'#5b6091'},
   {g:['#3a2521','#432d27','#33201d'],city:'#5d3c31',road:'#594335'},
   {g:['#c6ac77','#bda26b','#cfb683'],city:'#e2cd9c',road:'#a68f5e'},
-  {g:['#55744c','#5e7e55','#4b6944'],city:'#7d9b6d',road:'#7a6f55'}
+  {g:['#55744c','#5e7e55','#4b6944'],city:'#7d9b6d',road:'#7a6f55'},
+  {g:['#2b2420','#342a24','#241d19'],city:'#4a3b32',road:'#3a2e27'}
 ];
-const ROOF=['#3f4d8c','#5964b8','#7a2e22','#2f7f8f','#6b5a3c'];
-const ROOF2=['#55639f','#7a86d4','#9c4433','#49a0b0','#8b7a56'];
-const WALLF=['#ddd3bd','#b9bfe0','#8a5a46','#e9dcc0','#c9bc9a'];
+const ROOF=['#3f4d8c','#5964b8','#7a2e22','#2f7f8f','#6b5a3c','#1c1620'];
+const ROOF2=['#55639f','#7a86d4','#9c4433','#49a0b0','#8b7a56','#2a2230'];
+const WALLF=['#ddd3bd','#b9bfe0','#8a5a46','#e9dcc0','#c9bc9a','#4a4048'];
 const HAZ={1:['#15172e','#1a1c38','#121428'],2:['#ff5a1c','#ff7a2a','#e9461a'],3:['#1d69a6','#2272b3','#195e96']};
 const CITY={};for(const k in CLANS){const d=CLANS[k].dir;CITY[k]={x:CX+d[0]*OFF+.5,y:CY+d[1]*OFF+.5};}
 const CAP={x:(CX+.5)*T,y:(CY+.5)*T};
@@ -293,8 +318,15 @@ MASTERS.push({id:'valerian',clan:null,name:'Empereur Valerian',x:VALERIAN.x,y:VA
 // sanctuaire du pacte divin : une cachette hors des routes, propre à chaque clan
 const SHRINE={};for(const k in CLANS){const d=CLANS[k].dir;
   SHRINE[k]={x:(CX+d[0]*(OFF+26)+.5)*T,y:(CY+d[1]*(OFF-16)+.5)*T};}
+// les Cendres de Malvorn : un cinquième biome, caché juste au sud de la capitale,
+// entre les terres du feu et celles de l'eau - pas trop loin, mais invisible depuis les routes
+const ASH={x:CX,y:CY+58,r:13};
+// la cachette de Malvorn, enfouie au cœur des Cendres
+const FORT={x:(ASH.x+.5)*T,y:(ASH.y+.5)*T,r:12};
 
-function biomeOf(x,y){const dx=x-CX,dy=y-CY;if(dx*dx+dy*dy<CAPR*CAPR+500)return 0;if(dx>=0&&dy<0)return 1;if(dx>=0)return 2;if(dy>=0)return 3;return 4;}
+function biomeOf(x,y){const dx=x-CX,dy=y-CY;if(dx*dx+dy*dy<CAPR*CAPR+500)return 0;
+  const adx=x-ASH.x,ady=y-ASH.y;if(adx*adx+ady*ady<ASH.r*ASH.r+30)return 5;
+  if(dx>=0&&dy<0)return 1;if(dx>=0)return 2;if(dy>=0)return 3;return 4;}
 function isPalace(tx,ty){return tx>=CX-7&&tx<=CX+7&&ty>=CY-20&&ty<=CY-14;}
 function put(x,y,v){if(x<0||y<0||x>=W||y>=H)return;tiles[y*W+x]=v;}
 function at(x,y){if(x<0||y<0||x>=W||y>=H)return 1;return tiles[y*W+x];}
@@ -368,8 +400,24 @@ function gen(){
         put(x,y,open?6:1);}}
     for(let a=0;a<8;a++){const ang=a/8*TAU;
       put(Math.round(sx+Math.cos(ang)*3.6),Math.round(sy+Math.sin(ang)*3.6),4);}}
+  // forteresse des Oubliés : enceinte noire, une seule porte, donjon central
+  {const fx0=FORT.x/T,fy0=FORT.y/T,R=FORT.r;
+    disc(fx0,fy0,R,6);
+    for(let y=Math.floor(fy0-R-3);y<=fy0+R+3;y++)for(let x=Math.floor(fx0-R-3);x<=fx0+R+3;x++){
+      const d=Math.hypot(x-fx0,y-fy0);
+      if(d>=R&&d<R+2.5)put(x,y,Math.abs(x-fx0)<2.2&&y>fy0?6:4);}
+    build(Math.round(fx0)-4,Math.round(fy0)-5,9,5);
+    for(const[ox,oy]of[[-11,-6],[9,-6],[-11,5],[9,5],[-1,-12],[-1,10]])build(Math.round(fx0)+ox,Math.round(fy0)+oy,2,2);
+    for(let k=0;k<26;k++){const a=rnd(0,TAU),d=rnd(R+4,R+16);
+      const x=Math.round(fx0+Math.cos(a)*d),y=Math.round(fy0+Math.sin(a)*d);
+      if(at(x,y)===0)put(x,y,1);}}
   for(let i=0;i<W*H;i++){const t=tiles[i],b=bio[i],v=vari[i],p=PAL[b];
     floorCol[i]=t===3?p.road:(t===6||t===5||t===4)?(b===0?p.g[v]:shade(p.city,(v-1)*0.05)):p.g[v];}
+  // sol sombre dans la forteresse
+  {const fx0=FORT.x/T,fy0=FORT.y/T;
+    for(let y=Math.floor(fy0-FORT.r-3);y<=fy0+FORT.r+3;y++)for(let x=Math.floor(fx0-FORT.r-3);x<=fx0+FORT.r+3;x++){
+      if(x<0||y<0||x>=W||y>=H)continue;const i=y*W+x;
+      if(Math.hypot(x-fx0,y-fy0)<FORT.r+2.5&&(tiles[i]===6||tiles[i]===4))floorCol[i]=['#2a2436','#312a40','#261f31'][vari[i]];}}
 }
 gen();
 const mm=document.createElement('canvas');mm.width=W;mm.height=H;
@@ -391,7 +439,9 @@ function inCapital(x,y,r=CAPR){return dist(x,y,CAP.x,CAP.y)<r*T;}
 function inSafe(x,y){
   if(S&&S.quest==='attack')return false;
   if(inCapital(x,y,CAPR+1))return true;
-  for(const k in CITY)if(dist(x,y,CITY[k].x*T,CITY[k].y*T)<(CITYR+1)*T)return true;
+  for(const k in CITY){
+    if(S&&S.quest==='attack2'&&k===S.clan)continue;   // ta cité est à feu et à sang
+    if(dist(x,y,CITY[k].x*T,CITY[k].y*T)<(CITYR+1)*T)return true;}
   for(const v of VILLAGES)if(dist(x,y,v.x*T,v.y*T)<(VILR+1)*T)return true;
   return false;}
 // zones dangereuses : les Oubliés ne rôdent qu'au large des routes et loin des villes
@@ -407,14 +457,19 @@ function wildness(x,y){
 let S=null,P=null,comp=null;
 let enemies=[],projs=[],fx=[],zones=[],summons=[],pickups=[],timers=[],amb=[];
 let cam={x:CAP.x-600,y:CAP.y-400},shakeT=0,shakeA=0,time=0,banner=null,saveT=0,spawnT=4,lastQuestTxt='';
-let dlgOpen=false,helpOpen=false,savesOpen=false,interact=null,page=0,autoFlash=0;
+let dlgOpen=false,helpOpen=false,savesOpen=false,grimOpen=false,interact=null,autoFlash=0;
 const keys={};const mouse={sx:0,sy:0,wx:0,wy:0,active:false};let attackHeld=false;
 const joy={active:false,id:null,ox:0,oy:0,dx:0,dy:0};
 let touchMode=matchMedia('(pointer: coarse)').matches;
 const CL=()=>CLANS[S.clan];
-const sc=v=>v*(1+(S.lvl-1)*0.1)*(P.buffT>0?1.6:1)*(S.pact?1.35:1);
+const blessHas=n=>!!(S.bless&&S.bless.indexOf(n)>=0);
+const sc=v=>v*(1+(S.lvl-1)*0.1)*(P.buffT>0?1.6:1)*(S.pact?1.35:1)
+  *(1+(blessHas(0)?.25:0)+(blessHas(1)?.25:0));
+const hpMax=l=>Math.round((100+(l-1)*22)*(blessHas(2)?1.25:1));
+const cdOf=sp=>sp.cd*(blessHas(3)?.8:1);
 const xpNeed=l=>24+l*18;
-const NSP=20,DIV=20,MAXSP=21,PER=10;
+const NSP=24,NDIV=5,DIV=NSP,MAXSP=NSP+NDIV,PER=10;
+const nPagesBar=()=>Math.ceil(MAXSP/PER);
 
 const EDEF={
   scout:{hp:30,sp:120,dmg:8,r:11,xp:11,orb:2,nm:'Éclaireur oublié'},
@@ -523,6 +578,23 @@ function regen(dur,rate){P.regenT=dur;P.regenR=rate;ring(P.x,P.y,10,60,'#7dffb0'
 function buffUp(dur,mv){P.buffT=dur;if(mv)P.hasteT=dur;ring(P.x,P.y,10,60,'#ffffff',.5,5);burst(P.x,P.y,CL().col,24,220);}
 function tide(dmg,max){zones.push({k:'wave',x:P.x,y:P.y,rad:0,max,life:1.5,dur:1.5,hitSet:new Set(),dmg:sc(dmg)});shake(12,.9);}
 function tornado(a,dps,r,life){zones.push({k:'tornado',x:P.x+Math.cos(a)*40,y:P.y+Math.sin(a)*40,vx:Math.cos(a)*95,vy:Math.sin(a)*95,r,life,tick:0,dps:sc(dps),rot:0});shake(6,.4);}
+function moving(kind,a,speed,r,dps,life,col){
+  zones.push({k:kind,x:P.x+Math.cos(a)*50,y:P.y+Math.sin(a)*50,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,
+    r,life,tick:0,dps:sc(dps),rot:0,col:col||CL().col});}
+function markBomb(delay,dmg,r){const tg=AIM.lock||nearestEnemy(AIM.x,AIM.y,160);
+  const bx=tg?tg.x:AIM.x,by=tg?tg.y:AIM.y;
+  fx.push({k:'mark',x:bx,y:by,r,col:CL().col,t:0,life:delay});
+  timers.push({t:delay,fn:()=>{const x=tg&&!tg.dead?tg.x:bx,y=tg&&!tg.dead?tg.y:by;
+    explode(x,y,r,sc(dmg),CL().col,{knock:360,stun:.6});shake(10,.3);}});}
+function swordBuff(dur,mul){P.swordT=dur;P.swordMul=mul;ring(P.x,P.y,10,60,'#e8eef5',.5,5);}
+function domeShield(dur,v){P.shield=sc(v);P.shieldT=dur;P.domeT=dur;ring(P.x,P.y,20,80,CL().glow,.5,6);}
+function rootAll(r,dur,dmg){for(const e of enemies){if(e.dead||e.def.passive)continue;
+    if(dist(P.x,P.y,e.x,e.y)>r)continue;e.stun=Math.max(e.stun,e.def.boss?dur*.3:dur);e.rooted=dur;
+    hit(e,sc(dmg),Math.atan2(e.y-P.y,e.x-P.x),{knock:0,col:CL().col});
+    bolt(P.x,P.y-8,e.x,e.y-6,CL().col);}
+  ring(P.x,P.y,20,r,CL().col,.5,5);}
+function clone(life,dmg,rate){summons.push({k:'clone',x:P.x+rnd(-20,20),y:P.y+rnd(-20,20),life,cd:0,ang:0,off:Math.PI,
+  dmg,col:CL().col,face:0,walk:0,fixed:1,follow:1,rate});burst(P.x,P.y,CL().glow,20,180);}
 function bigSummon(k,life,dmg){summons.push({k,x:P.x+rnd(-20,20),y:P.y+rnd(-20,20),life,cd:0,ang:0,off:0,dmg,col:CL().col,face:0,walk:0,big:1,fly:k==='dragonA'});
   burst(P.x,P.y,CL().glow,34,280);shake(5,.3);}
 function meteorAt(r,dmg,delay){const t=targetPoint();fx.push({k:'mark',x:t.x,y:t.y,r,col:CL().col,t:0,life:delay});
@@ -535,9 +607,10 @@ function lifeStrike(a,dmg,heal){let got=0;
   fx.push({k:'slash',x:P.x,y:P.y-6,a,t:0,life:.26,col:CL().col,r:120});}
 
 /* ---------- 18 sorts par clan ---------- */
-const LV=[1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,20,22,25,28,32];
+const LV=[1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,20,22,24,26,28,30,33,36,40];
 const TE=['start','start','home','home','astralis','c1','home','c2','astralis','c3',
-          'valerian','c1','astralis','c2','valerian','c3','home','c1','valerian','valerian'];
+          'valerian','c1','astralis','c2','valerian','c3','home','c1','valerian','valerian',
+          'c2','astralis','c3','valerian'];
 function mk(list){return list.map((s,i)=>Object.assign({lvl:LV[i],teach:TE[i]},s));}
 const SPELLS={
   elec:mk([
@@ -562,7 +635,12 @@ const SPELLS={
     {n:'Tonnerre',ic:'nova',cd:13,c:()=>{nova(300,130,700,{stun:1.1,shake:12});
       for(let k=0;k<6;k++)timers.push({t:k*.08,fn:()=>{const a=rnd(0,TAU),d=rnd(60,280);
         bolt(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d-90,P.x+Math.cos(a)*d,P.y+Math.sin(a)*d,'#ffe04a');}});}},
-    {n:'Clap Big Bang',ic:'ult',cd:34,c:()=>nova(430,270,900,{stun:2,shake:20,big:1})}]),
+    {n:'Clap Big Bang',ic:'ult',cd:34,c:()=>nova(430,270,900,{stun:2,shake:20,big:1})},
+    {n:'Sphère de foudre',ic:'orbit',cd:10,c:a=>moving('storm',a,120,120,70,6)},
+    {n:'Chaînes célestes',ic:'net',cd:13,c:()=>rootAll(300,3,60)},
+    {n:'Double de foudre',ic:'clone',cd:26,c:()=>clone(18,40,.55)},
+    {n:'Nova statique',ic:'nova',cd:18,c:()=>{nova(360,180,800,{stun:1.2,shake:14});
+      for(let k=0;k<4;k++)timers.push({t:.15*k,fn:()=>chain(8,420,45)});}}]),
   fire:mk([
     {n:'Boule de feu',ic:'proj',cd:.7,c:a=>shoot(a,{sp:560,dmg:19,r:8,burn:2,explode:{r:66,dmg:13}})},
     {n:'Poings de lave',ic:'aura',cd:7,c:()=>aura(5,40,78)},
@@ -586,7 +664,12 @@ const SPELLS={
       zones.push({k:'fire',x:P.x+Math.cos(a)*120,y:P.y+Math.sin(a)*120,r:34,life:6,tick:0,dps:sc(46)});}
       ring(P.x,P.y,20,150,'#ff6a2a',.6,7);}},
     {n:'Éruption',ic:'ult',cd:34,c:()=>{for(let k=0;k<20;k++)timers.push({t:k*.12,fn:()=>{const a=rnd(0,TAU),d=rnd(40,370);
-      explode(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d,88,sc(98),'#ff6a2a',{burn:3});shake(7,.15);}});shake(10,2.6);}}]),
+      explode(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d,88,sc(98),'#ff6a2a',{burn:3});shake(7,.15);}});shake(10,2.6);}},
+    {n:'Mur mouvant',ic:'wall',cd:10,c:a=>moving('fire',a,95,130,76,6)},
+    {n:'Explosion retardée',ic:'mine',cd:9,c:()=>markBomb(1.6,260,130)},
+    {n:'Forge ardente',ic:'buff',cd:22,c:()=>{swordBuff(12,2.4);aura(12,20,66);}},
+    {n:'Soleil miniature',ic:'orbit',cd:24,c:()=>{orbitOrbs(1,12,120,110);
+      zones.push({k:'fire',x:P.x,y:P.y,r:150,life:12,tick:0,dps:sc(34),follow:1});shake(6,.4);}}]),
   water:mk([
     {n:"Jet d'eau",ic:'proj',cd:.42,c:a=>shoot(a,{sp:700,dmg:14,r:7,knock:300,pierce:2})},
     {n:"Fouet d'eau",ic:'whip',cd:1.6,c:a=>lifeStrike(a,34,6)},
@@ -611,7 +694,14 @@ const SPELLS={
       fx.push({k:'beam',x:P.x,y:P.y-6,a,len:300,w:70,col:'#a6ecff',t:0,life:.35});shake(7,.3);}},
     {n:'Grêle',ic:'rain',cd:13,c:()=>{const t=targetPoint();rain(t.x,t.y,12,230,52,.09,'#d9f7ff',{r:60});
       zones.push({k:'slowdmg',x:t.x,y:t.y,r:230,life:5,tick:0,dps:sc(22)});}},
-    {n:'Raz-de-marée',ic:'ult',cd:34,c:()=>tide(120,540)}]),
+    {n:'Raz-de-marée',ic:'ult',cd:34,c:()=>tide(120,540)},
+    {n:'Prison de glace',ic:'net',cd:11,c:()=>{const t=AIM.lock;
+      if(t){t.stun=Math.max(t.stun,t.def.boss?1.6:6);t.frost=6;hit(t,sc(90),0,{knock:0,col:'#cdeeff'});
+        ring(t.x,t.y,8,46,'#cdeeff',.5,5);}else freeze(170,3,50);}},
+    {n:'Source de vie',ic:'heal',cd:20,c:()=>{field('heal',10,0,170);regen(10,9);}},
+    {n:'Trombe d\'eau',ic:'orbit',cd:10,c:a=>moving('slowdmg',a,110,125,72,6)},
+    {n:'Banquise',ic:'storm',cd:22,c:()=>{field('slowdmg',9,60,260);
+      for(const e of enemies)if(!e.dead&&dist(P.x,P.y,e.x,e.y)<260)e.frost=3;shake(7,.4);}}]),
   wind:mk([
     {n:'Lames de vent',ic:'multi',cd:.62,c:a=>fan(a,3,.2,{sp:740,dmg:11,r:5,pierce:3,knock:160,life:.8})},
     {n:'Rafale',ic:'nova',cd:3.4,c:()=>nova(185,17,640,{})},
@@ -634,7 +724,14 @@ const SPELLS={
     {n:'Bourrasque ascendante',ic:'nova',cd:12,c:()=>{nova(260,88,900,{stun:1.4});
       for(const e of enemies)if(!e.dead&&dist(P.x,P.y,e.x,e.y)<260&&!e.def.boss)e.frost=.8;
       ring(P.x,P.y,30,260,'#eafff3',.6,8);shake(8,.4);}},
-    {n:'Tornade',ic:'ult',cd:34,c:a=>tornado(a,66,215,6)}])
+    {n:'Tornade',ic:'ult',cd:34,c:a=>tornado(a,66,215,6)},
+    {n:'Lame fantôme',ic:'blink',cd:8,c:a=>{dash(a,330,95,{});
+      timers.push({t:.12,fn:()=>dash(a+Math.PI,330,95,{})});}},
+    {n:'Plumes tranchantes',ic:'multi',cd:7,c:a=>{for(let k=0;k<8;k++)
+      timers.push({t:k*.06,fn:()=>shoot(a+rnd(-.5,.5),{sp:860,dmg:38,r:5,pierce:3,homing:1,knock:140})});}},
+    {n:'Dôme de vent',ic:'shield',cd:20,c:()=>domeShield(10,160)},
+    {n:'Œil du cyclone',ic:'storm',cd:26,c:a=>{tornado(a,90,300,9);
+      zones.push({k:'vac',x:P.x,y:P.y,r:300,life:9,tick:0,dps:sc(30)});shake(10,.6);}}])
 };
 
 /* ---------- pouvoirs divins : un seul à choisir au pacte ---------- */
@@ -653,7 +750,12 @@ const DIVINE=[
   {n:'Souffle du dieu',ic:'beam',cd:20,d:'Un rayon énorme qui traverse tout l\'écran et pulvérise ce qu\'il touche.',
    c:a=>{beam(a,980,300,56,CL().glow);for(let k=1;k<=4;k++)timers.push({t:k*.1,fn:()=>beam(a,980,80,56,CL().col)});shake(14,.8);}}
 ];
-function spellAt(i){return i===DIV?(S.divine>=0?DIVINE[S.divine]:null):SPELLS[S.clan][i];}
+function divineAt(n){const d=S.divines&&S.divines[n];return(d!=null&&d>=0)?DIVINE[d]:null;}
+function spellAt(i){return i<NSP?SPELLS[S.clan][i]:divineAt(i-NSP);}
+function usable(i){if(i<NSP){const sp=SPELLS[S.clan][i];return!!sp&&S.lvl>=sp.lvl&&S.learned[i];}
+  return!!divineAt(i-NSP);}
+// tous les sorts utilisables, pour la roue
+function castable(){const out=[];for(let i=0;i<MAXSP;i++)if(usable(i))out.push(i);return out;}
 function tourKeys(){const h=S.clan;return[COMP[h],OPP[h],KEYS4.find(k=>k!==h&&k!==COMP[h]&&k!==OPP[h])];}
 function teacherOf(sp){const t=sp.teach;if(t==='home')return S.clan;
   if(t==='c1'||t==='c2'||t==='c3')return tourKeys()[{c1:0,c2:1,c3:2}[t]];return t;}
@@ -684,7 +786,7 @@ function kill(e){e.dead=true;burst(e.x,e.y,e.def.boss?'#ff3355':'#a35cff',e.def.
     if(S.gq.type==='hunt'||(S.gq.type==='camp'&&e.camp)){S.gq.done++;
       if(S.gq.done>=S.gq.need)showBanner('Mission terminée','Retourne au registre de ta guilde, à Astralis',3);}}}
 function gainXp(v){S.xp+=v;while(S.xp>=xpNeed(S.lvl)){S.xp-=xpNeed(S.lvl);levelUp();}}
-function levelUp(){S.lvl++;P.maxHp=100+(S.lvl-1)*22;P.hp=P.maxHp;
+function levelUp(){S.lvl++;P.maxHp=hpMax(S.lvl);P.hp=P.maxHp;
   const L=SPELLS[S.clan];let msg='Tes sorts et ton épée frappent plus fort';
   for(let i=0;i<NSP;i++)if(L[i].lvl===S.lvl&&!S.learned[i]){msg=L[i].n+' est à ta portée · va voir '+teachLabel(L[i]);break;}
   showBanner('Niveau '+S.lvl,msg);ring(P.x,P.y,10,140,'#e6c46a',.7,5);burst(P.x,P.y,'#e6c46a',32,260);}
@@ -708,12 +810,12 @@ function swing(){
     let da=Math.atan2(e.y-P.y,e.x-P.x)-a;da=Math.atan2(Math.sin(da),Math.cos(da));
     if(Math.abs(da)>1.05&&d>e.r+14)continue;hit(e,dmg,a,o);}
   fx.push({k:'slash',x:P.x,y:P.y-6,a,t:0,life:.22,col:CL().col,r:58});}
-function cast(i){const sp=spellAt(i);
-  if(i===DIV){if(S.divine<0){showBanner('Pouvoir divin','Il te faut d\'abord sceller un pacte avec ton dieu',1.8);return;}}
+function cast(i){if(i==null||i<0||i>=MAXSP)return;const sp=spellAt(i);
+  if(i>=NSP){if(!sp){showBanner('Pouvoir divin','Il te faut d\'abord sceller un pacte avec un dieu',1.8);return;}}
   else{if(!sp)return;
     if(S.lvl<sp.lvl){showBanner(sp.n,'Débloqué au niveau '+sp.lvl,1.8);return;}
     if(!S.learned[i]){showBanner(sp.n,'À apprendre auprès de '+teachLabel(sp),2.2);return;}}
-  if(P.cds[i]>0)return;P.mounted=false;sp.c(aimAngle());P.cds[i]=sp.cd;}
+  if(P.cds[i]>0)return;P.mounted=false;sp.c(aimAngle());P.cds[i]=cdOf(sp);}
 function toggleMount(){if(!S.mount){showBanner('Pas encore de monture','Elle te rejoindra plus tard',1.8);return;}
   P.mounted=!P.mounted;burst(P.x,P.y,CL().glow,14,140);}
 
@@ -721,9 +823,16 @@ function toggleMount(){if(!S.mount){showBanner('Pas encore de monture','Elle te 
 function swordVillage(){let best=null,bd=1e9;const c=cityPx(S.clan);
   for(const v of VILLAGES){if(v.clan!==S.clan)continue;const d=dist(v.x*T,v.y*T,c.x,c.y);if(d<bd){bd=d;best=v;}}return best;}
 function nextFor(who){const L=SPELLS[S.clan];for(let i=0;i<NSP;i++)if(!S.learned[i]&&teacherOf(L[i])===who)return{i,sp:L[i]};return null;}
-function learn(i){S.learned[i]=true;const sp=SPELLS[S.clan][i];const slot=i%PER,pg=Math.floor(i/PER);
-  showBanner(sp.n+' appris !','Page '+(pg+1)+' de la barre · touche '+(slot===9?'0':slot+1),3.4);
-  ring(P.x,P.y,10,120,CL().col,.7,6);burst(P.x,P.y,CL().col,30,240);save();}
+function learn(i){S.learned[i]=true;const sp=SPELLS[S.clan][i];
+  if(!S.bar.includes(i)&&S.bar.length<DPER){S.bar.push(i);
+    showBanner(sp.n+' appris !','Épinglé dans ta barre · touche '+((S.bar.indexOf(i)+1)%10),3.4);}
+  else showBanner(sp.n+' appris !','Ouvre le grimoire (touche B) pour l\'épingler dans ta barre',3.4);
+  ring(P.x,P.y,10,120,CL().col,.7,6);burst(P.x,P.y,CL().col,30,240);save();
+  // apprendre l'ultime du clan déclenche le second acte du pacte
+  if(sp.ic==='ult'&&S.pact&&!S.pact2&&!S.pact2started){S.pact2started=true;
+    setTimeout(()=>{if(dlgOpen)return;S.questBefore=S.quest;S.quest='_';
+      say(TXT.attack2Call(),()=>{S.quest='attack2';S.awave=0;S.awaveOn=false;S.awaveDelay=2;
+        showBanner(CL().city+' est attaquée !','Rentre défendre ta cité');save();});},900);}}
 const MASTER_INTRO={
   elec:()=>'Un étranger sous notre dôme. Voltara n\'aime pas les visiteurs… mais Valerian t\'envoie, alors je t\'écoute. Sais-tu que trois des nôtres ont disparu ce mois-ci ?',
   fire:()=>'Tu viens de loin, et tu respires encore. C\'est déjà quelque chose. Pyros a perdu deux forges dans un raid, le mois dernier. Personne ne sait qui.',
@@ -782,22 +891,69 @@ function takeSword(){S.quest='_';S.sword=true;
        {who:'Le forgeron',text:'…Emporte-la. Et quand tu sauras ce qu\'elle est, reviens me le dire.'}],
       ()=>{S.quest='travel';S.mount=true;
         showBanner('L\'épée est à toi','Clic ou Espace pour frapper · M pour appeler ta monture');save();});}
-function startIncant(){
-  if(S.incant)return;S.incant=0.01;showBanner('Incantation','Reste dans le cercle de pierres');}
+function startIncant(kind){
+  if(S.incant!=null)return;S.incant=0.01;S.incantKind=kind||'pact1';
+  showBanner('Incantation',kind==='pact2'?'Reste dans le cercle et tiens bon':'Reste dans le cercle de pierres');}
+function incantSite(){
+  if(S.incantKind&&S.incantKind!=='pact1'&&S.incantKind!=='pact2')return SHRINE[S.incantKind];
+  return SHRINE[S.clan];}
+function finishIncant(){
+  const k=S.incantKind;
+  if(k==='pact2')finishPact2();
+  else if(k&&k!=='pact1')finishGod(k);
+  else finishPact();}
+function finishGod(k){S.incant=null;S.gods=S.gods||[];S.gods.push(k);
+  const b=BLESS[KEYS4.indexOf(k)];S.bless=S.bless||[];S.bless.push(KEYS4.indexOf(k));
+  ring(P.x,P.y,10,240,CLANS[k].glow,1,9);burst(P.x,P.y,CLANS[k].col,50,380);shake(12,.8);
+  const left=godShrineLeft().length;
+  say([{who:CLANS[k].god,text:`Un magicien ${GEN[S.clan]} dans ma grotte. Et il tient debout.`},
+       {who:CLANS[k].god,text:`Mon clan et le tien se haïssent depuis des siècles. Toi, tu as fait combattre les quatre côte à côte à Astralis. Je m'en souviens.`},
+       {who:CLANS[k].god,text:`Je ne te donnerai pas de sort : tu en as assez. Je te donne ma bénédiction — ${b.d}.`},
+       {text:left?`Il reste ${left} dieu${left>1?'x':''} à convaincre.`:'Les quatre dieux t\'ont reconnu.'}],
+      ()=>save());}
+const DKEYS=['R','T','F','G','V'];
+// premier pacte : un seul pouvoir divin
 function finishPact(){
-  S.incant=null;S.quest='_';
-  const gname=CL().god;
-  say([{text:`Les huit pierres s'allument l'une après l'autre. Le cercle entier prend la couleur de ta magie.`},
-       {who:gname,text:`Tu as défendu une ville qui n'était pas la tienne. C'est pour ça que je réponds, et pour rien d'autre.`},
-       {who:gname,text:'Je te donne deux choses. Toute ta magie va croître, d\'un coup. Et je t\'accorde un pouvoir divin. Un seul. Choisis.'},
+  S.incant=null;S.quest='_';S.divines=S.divines||[];
+  const g=CL().god;
+  say([{text:'Les huit pierres s\'allument l\'une après l\'autre. La grotte entière prend la couleur de ta magie.'},
+       {who:g,text:'Tu as défendu une ville qui n\'était pas la tienne. C\'est pour ça que je réponds, et pour rien d\'autre.'},
+       {who:g,text:'Je te donne deux choses. Toute ta magie va croître, d\'un coup. Et je t\'accorde un pouvoir divin. Un seul, car tu n\'es qu\'un enfant. Choisis.'},
        {text:'Six lumières flottent devant toi, chacune portant un pouvoir.',
-        choices:DIVINE.map((d,i)=>({label:d.n,sub:d.d,fn:()=>pickDivine(i)}))}]);}
-function pickDivine(i){S.divine=i;S.pact=true;
-  ring(P.x,P.y,10,260,CL().glow,1.2,10);burst(P.x,P.y,CL().col,60,420);shake(16,1.2);
+        choices:DIVINE.map((d,i)=>({label:d.n,sub:d.d,fn:()=>pickDivine1(i)}))}]);}
+function pickDivine1(i){S.divines=[i];S.pact=true;S.divine=i;
+  ring(P.x,P.y,10,300,CL().glow,1.3,11);burst(P.x,P.y,CL().col,66,440);shake(16,1.2);
   say([{who:CL().god,text:`${DIVINE[i].n}. Touche R. Ne t'en sers pas pour rien.`},
        {text:'Toute ta magie frappe désormais un tiers plus fort. Tu sens la différence jusque dans tes mains.'},
        {who:CL().god,text:'Malvorn a fait un pacte lui aussi, avec autre chose que moi. Quand tu le trouveras, tu comprendras la différence.'}],
-      ()=>{S.quest='free';showBanner('Pacte divin scellé',DIVINE[i].n+' · touche R',3.6);save();});}
+      ()=>{S.quest='trainUlt';showBanner('Pacte divin scellé',DIVINE[i].n+' · touche R',3.6);save();});}
+// second pacte : quatre pouvoirs arrachés au dieu
+function finishPact2(){
+  S.incant=null;S.quest='_';
+  const g=CL().god;
+  say([{text:'Tu entres dans la grotte sans ralentir. Les pierres s\'allument avant même que tu aies parlé.'},
+       {who:N(),text:`Ils l'ont tuée. Dans sa propre tour, sous son propre dôme. Et toi, tu n'as rien fait.`},
+       {who:g,text:'Je ne suis pas un garde du corps.'},
+       {who:N(),text:'Alors sers à quelque chose. Quatre pouvoirs. Maintenant. Et c\'est moi qui les choisis.'},
+       {text:'Le silence dure longtemps. Puis la grotte entière s\'illumine.'},
+       {who:g,text:'Personne ne m\'a parlé comme ça depuis le premier empereur. C\'est bien. Prends-en quatre.'}],
+      ()=>askDivine4());}
+function askDivine4(){
+  const left=DIVINE.map((d,i)=>i).filter(i=>!S.divines.includes(i));
+  const n=S.divines.length;
+  if(n>=NDIV||!left.length){endPact2();return;}
+  say([{text:`Pouvoir divin ${n+1} sur ${NDIV} · touche ${DKEYS[n]}`,
+        choices:left.map(i=>({label:DIVINE[i].n,sub:DIVINE[i].d,fn:()=>pickDivine2(i)}))}]);}
+function pickDivine2(i){S.divines.push(i);
+  ring(P.x,P.y,10,200,CL().glow,.8,8);burst(P.x,P.y,CL().col,40,320);
+  showBanner(DIVINE[i].n,'Touche '+DKEYS[S.divines.length-1],2);
+  setTimeout(askDivine4,850);}
+function endPact2(){S.pact2=true;
+  ring(P.x,P.y,10,360,CL().glow,1.6,13);burst(P.x,P.y,CL().col,90,520);shake(20,1.6);
+  say([{who:CL().god,text:`Touches ${DKEYS.slice(0,S.divines.length).join(', ')}. Tu portes maintenant cinq de mes six pouvoirs.`},
+       {who:CL().god,text:'Va. Et quand tu trouveras Malvorn, rappelle-toi que la colère rend fort un instant, et aveugle tout le reste du temps.'}],
+      ()=>{S.quest='hideout';S.questBefore=null;
+        showBanner('Second pacte scellé',S.divines.map(d=>DIVINE[d].n).join(' · '),4.5);save();});}
 /* ---------- missions de guilde ---------- */
 const RANKS=['Recrue','Écuyer','Lame','Vétéran','Champion','Légende'];
 const rank=()=>RANKS[Math.min(RANKS.length-1,Math.floor((S.gqDone||0)/3))];
@@ -840,7 +996,11 @@ function findInteract(){
   if(S.guild!=null&&dist(P.x,P.y,GUILDH.x,GUILDH.y)<90)
     return{k:'board',label:(S.gq&&S.gq.done>=S.gq.need)?'Rendre la mission':S.gq?'Registre de la guilde':'Prendre une mission'};
   if(S.quest==='sword'){const v=swordVillage();if(v&&dist(P.x,P.y,v.x*T,v.y*T)<VILR*T*.9)return{k:'sword',label:'Prendre l\'épée'};}
-  if(S.quest==='pactShrine'&&!S.incant){const s=SHRINE[S.clan];if(dist(P.x,P.y,s.x,s.y)<4*T)return{k:'shrine',label:'Prononcer l\'incantation'};}
+  if(S.incant==null){
+    if(S.quest==='pactShrine'){const s=SHRINE[S.clan];if(dist(P.x,P.y,s.x,s.y)<4*T)return{k:'shrine',kind:'pact1',label:'Prononcer l\'incantation'};}
+    if(S.quest==='pact2'){const s=SHRINE[S.clan];if(dist(P.x,P.y,s.x,s.y)<4*T)return{k:'shrine',kind:'pact2',label:'Défier '+CL().god};}
+    if(S.quest==='gods')for(const k of godShrineLeft()){const s=SHRINE[k];
+      if(dist(P.x,P.y,s.x,s.y)<4*T)return{k:'shrine',kind:k,label:'Invoquer '+CLANS[k].god};}}
   for(const m of MASTERS)if(dist(P.x,P.y,m.x,m.y)<84)return{k:'master',m,label:'Parler à '+m.name};
   for(const id in PORTALS){const p=PORTALS[id];if(dist(P.x,P.y,p.x,p.y)<64)return{k:'portal',id,label:'Portail'};}
   return null;}
@@ -848,7 +1008,7 @@ function doInteract(){if(!interact)return;
   if(interact.k==='master')talkMaster(interact.m);
   else if(interact.k==='portal')usePortal(interact.id);
   else if(interact.k==='sword')takeSword();
-  else if(interact.k==='shrine')startIncant();
+  else if(interact.k==='shrine')startIncant(interact.kind);
   else if(interact.k==='board')offerBoard();}
 
 /* ---------- quêtes ---------- */
@@ -869,16 +1029,45 @@ function startAttack(){S.quest='attack';S.wave=0;S.waveOn=false;S.waveDelay=2;
 function spawnWave(w){const def=WAVES[w];let gi=0;
   for(const type in def)for(let k=0;k<def[type];k++){const g=(gi++)%8,a=g*TAU/8+rnd(-.2,.2);
     mkEnemy(type,CAP.x+Math.cos(a)*(CAPR-1)*T,CAP.y+Math.sin(a)*(CAPR-1)*T,{wave:true});}}
+/* ---------- actes 5 et 6 : la cachette, puis les quatre dieux ---------- */
+const BLESS=[{n:'Éclat de Zalvir',d:'tes sorts frappent un quart plus fort'},
+             {n:'Souffle d\'Ignar',d:'tes sorts frappent un quart plus fort'},
+             {n:'Écaille de Thalassa',d:'un quart de points de vie en plus'},
+             {n:'Faveur de Sylphe',d:'tes temps de recharge raccourcissent d\'un cinquième'}];
+function makeCamps(){S.camps=[];
+  for(const k of tourKeys()){const c=cityPx(k),a=Math.atan2(CAP.y-c.y,CAP.x-c.x)+1.1;
+    let x=c.x+Math.cos(a)*26*T,y=c.y+Math.sin(a)*26*T;
+    for(let t=0;t<40&&(blocked(x,y,22)||inSafe(x,y));t++){const aa=rnd(0,TAU);x=c.x+Math.cos(aa)*rnd(20,30)*T;y=c.y+Math.sin(aa)*rnd(20,30)*T;}
+    S.camps.push({x,y,clan:k,cleared:false,spawned:false});}}
+function campNear(){if(!S.camps)return null;
+  for(const c of S.camps)if(!c.cleared&&dist(P.x,P.y,c.x,c.y)<13*T)return c;return null;}
+function spawnCampFor(c){if(c.spawned)return;c.spawned=true;
+  for(let k=0;k<7;k++){const a=k/7*TAU,d=rnd(40,130);
+    const x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d;
+    const type=k===0?'brute':k<3?'knight':k<5?'mage':'hound';
+    mkEnemy(type,blocked(x,y,18)?c.x:x,blocked(x,y,18)?c.y:y,{camp2:c});}}
+function campsLeft(){return S.camps?S.camps.filter(c=>!c.cleared).length:3;}
+const FWAVES=[{hound:7,mage:4,knight:3},{knight:5,brute:3,mage:5},{hound:6,knight:6,mage:5},{boss2:1,knight:4,brute:3}];
+function startFort(){S.fwave=0;S.fwaveOn=false;S.fwaveDelay=1.5;
+  showBanner('La forteresse des Oubliés','Vague 1 / 4',2.6);}
+function spawnFWave(w){const def=FWAVES[w];let gi=0;
+  for(const type in def)for(let k=0;k<def[type];k++){const a=(gi++)*0.9+rnd(-.2,.2);
+    const t=type==='boss2'?'boss':type;
+    const e=mkEnemy(t,FORT.x+Math.cos(a)*(FORT.r-4)*T,FORT.y+Math.sin(a)*(FORT.r-4)*T,{fort:true});
+    if(type==='boss2'){e.def=Object.assign({},EDEF.boss,{nm:'Général Korvax',hp:3200,xp:1200,orb:260});
+      e.hp=e.maxHp=3200;}}}
+function godShrineLeft(){return tourKeys().filter(k=>!(S.gods||[]).includes(k));}
+
 function updQuest(dt){
   for(const id in PORTALS){const p=PORTALS[id];
     if(!S.disc[id]&&dist(P.x,P.y,p.x,p.y)<(id==='capital'?CAPR:CITYR)*T){S.disc[id]=true;
       showBanner(id==='capital'?'Astralis découverte':CLANS[id].city+' découverte','Portail actif · appuie sur E sur la grande place',2.4);}}
-  if(S.incant!=null){const s=SHRINE[S.clan];
+  if(S.incant!=null){const s=incantSite();
     if(dist(P.x,P.y,s.x,s.y)>4.6*T){S.incant=null;showBanner('Incantation interrompue','Reste dans le cercle de pierres',2);}
     else{S.incant+=dt/6;
       if(Math.random()<.5){const a=rnd(0,TAU);fx.push({k:'p',x:s.x+Math.cos(a)*4*T,y:s.y+Math.sin(a)*4*T,
         vx:-Math.cos(a)*90,vy:-Math.sin(a)*90,col:CL().col,t:0,life:.8,s:3});}
-      if(S.incant>=1)finishPact();}}
+      if(S.incant>=1)finishIncant();}}
   switch(S.quest){
     case 'tuto':if(S.tutoLeft<=0){S.quest='_';S.learned[1]=true;gainXp(50);
       say(TXT.tutoDone(),()=>{S.quest='sword';showBanner('Nouvelle quête','Va chercher l\'épée au hameau de '+swordVillage().name);save();});}break;
@@ -901,6 +1090,53 @@ function updQuest(dt){
           say(TXT.victory(),()=>{S.quest='pactMaster';showBanner('Nouvelle quête','Retourne voir le maître de '+CL().city);save();});}
         else{S.waveDelay=4;showBanner('Vague '+(S.wave+1)+' / 4',S.wave===3?'Un lieutenant de Malvorn approche':'Astralis tient encore. Soigne-toi !');}}
       break;
+    case 'hideout':{
+      if(!S.camps)makeCamps();
+      if(S.camps.every(c=>c.cleared)){S.quest='_';say(TXT.fortFound(),()=>{S.quest='fortress';showBanner('La forteresse est localisée','Nord-ouest du royaume, au-delà des montagnes');save();});break;}
+      const c=campNear();if(c)spawnCampFor(c);
+      for(const cc of S.camps)if(cc.spawned&&!cc.cleared&&!enemies.some(e=>e.camp2===cc&&!e.dead)){
+        cc.cleared=true;gainXp(300);
+        if(campsLeft())showBanner('Campement nettoyé',campsLeft()+' campement(s) restant(s) · les Oubliés viennent du nord-ouest');
+        else{S.quest='_';say(TXT.fortFound(),()=>{S.quest='fortress';showBanner('La forteresse est localisée','Nord-ouest du royaume, au-delà des montagnes');save();});}}
+      break;}
+    case 'fortress':
+      if(S.fwave===undefined&&dist(P.x,P.y,FORT.x,FORT.y)<(FORT.r+2)*T)startFort();
+      if(S.fwave!==undefined){
+        if(!S.fwaveOn){S.fwaveDelay-=dt;if(S.fwaveDelay<=0){spawnFWave(S.fwave);S.fwaveOn=true;}}
+        else if(!enemies.some(e=>e.fort&&!e.dead)){S.fwaveOn=false;S.fwave++;gainXp(400);
+          P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.5));
+          if(S.fwave>=FWAVES.length){S.quest='_';S.fwave=undefined;
+            say(TXT.malvorn(),()=>{S.quest='malvornFight';S.mSpawned=false;
+              showBanner('Malvorn','Il t\'attend au sommet du donjon',3);save();});}
+          else{S.fwaveDelay=4;showBanner('Vague '+(S.fwave+1)+' / 4',S.fwave===3?'Le général Korvax descend du donjon':'La forteresse tient encore');}}}
+      break;
+    case 'malvornFight':{
+      if(!S.mSpawned){S.mSpawned=true;
+        const e=mkEnemy('boss',FORT.x,FORT.y-2*T,{fort:true,mfinal:true});
+        e.def=Object.assign({},EDEF.boss,{nm:'Malvorn',hp:5200,xp:0,orb:0});
+        e.hp=e.maxHp=5200;}
+      else if(!enemies.some(e=>e.mfinal&&!e.dead)){S.quest='_';
+        say(TXT.malvornDown(),()=>say(TXT.throne(),()=>{
+          S.emperor=true;S.quest='gods';S.gods=S.gods||[];S.bless=S.bless||[];
+          showBanner('Le grand entraînement','Six mois pour sceller un pacte avec les trois autres dieux');save();}));}
+      break;}
+    case 'attack2':{
+      const c=cityPx(S.clan),inCity=dist(P.x,P.y,c.x,c.y)<CITYR*T;
+      if(!inCity)break;
+      if(!S.awaveOn){S.awaveDelay-=dt;
+        if(S.awaveDelay<=0){const def=[{hound:8,mage:5,knight:3},{knight:5,brute:4,mage:6},{brute:5,knight:6,mage:6},{brute:6,hound:6,mage:7,knight:3}][S.awave];
+          let gi=0;for(const type in def)for(let k=0;k<def[type];k++){const a=(gi++)*0.7+rnd(-.2,.2);
+            mkEnemy(type,c.x+Math.cos(a)*(CITYR-2)*T,c.y+Math.sin(a)*(CITYR-2)*T,{awave:true});}
+          S.awaveOn=true;}}
+      else if(!enemies.some(e=>e.awave&&!e.dead)){S.awaveOn=false;S.awave++;gainXp(350);
+        P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.5));
+        if(S.awave>=4){S.quest='_';S.masterDead=true;
+          say(TXT.masterDies(),()=>{S.quest='pact2';showBanner('Retourne à la grotte','Tu as un compte à régler avec ton dieu',4);save();});}
+        else{S.awaveDelay=3.5;showBanner('Vague '+(S.awave+1)+' / 4',S.awave===3?'La garde personnelle de Malvorn est là':'Ils visent la tour du maître');}}
+      break;}
+    case 'gods':
+      if(!godShrineLeft().length){S.quest='_';say(TXT.allGods(),()=>{S.quest='end';save();});}
+      break;
   }}
 function questText(){if(!S)return'';
   const L=SPELLS[S.clan];
@@ -921,9 +1157,20 @@ function questText(){if(!S)return'';
     case 'pactMaster':return 'Retourne voir '+CL().master+', à '+CL().city+'.';
     case 'pactShrine':return S.incant!=null?'Incantation en cours : reste dans le cercle de pierres.'
       :'Trouve le sanctuaire de ton clan, hors des routes, et prononce l\'incantation.';
+    case 'trainUlt':{const p=L.findIndex((s,i)=>!S.learned[i]);
+      return p>=0?`Continue ton apprentissage : ${L[p].n} ${S.lvl>=L[p].lvl?'t\'attend chez '+teachLabel(L[p]):'(niveau '+L[p].lvl+' requis)'}.`
+        :'Ton sort ultime est à portée : entraîne-toi encore un peu.';}
+    case 'hideout':return `Trois campements d'Oubliés ont été repérés : nettoie-les pour trouver la cachette (${campsLeft()} restant(s)).`;
+    case 'malvornFight':return `Malvorn t'attend au sommet du donjon. Finis-en.`;
+    case 'fortress':return S.fwave!==undefined?`Forteresse des Oubliés : vague ${S.fwave+1} / 4.`
+      :'Rejoins la forteresse des Oubliés, au nord-ouest du royaume.';
+    case 'attack2':return S.awaveOn?`Défends ${CL().city} : vague ${S.awave+1} / 4.`:`Rentre à ${CL().city} : les Oubliés sont sous le dôme.`;
+    case 'pact2':return S.incant!=null?'Tu défies ton dieu : reste dans le cercle.':`Retourne à la grotte et exige ton dû à ${CL().god}.`;
+    case 'gods':{const l=godShrineLeft();return 'Scelle un pacte avec les autres dieux : '+l.map(k=>CLANS[k].god.split(',')[0]).join(', ')+'.';}
+    case 'end':return 'Malvorn est tombé, les quatre dieux t\'ont béni, et le trône d\'Astralis t\'attend. Suite au prochain chapitre.';
     case 'free':{const p=L.findIndex((s,i)=>!S.learned[i]);
       return p>=0?`${L[p].n} : ${S.lvl>=L[p].lvl?'va voir '+teachLabel(L[p]):'niveau '+L[p].lvl+' requis'}.`
-        :'Tu maîtrises les vingt pouvoirs de ton clan. La cachette de Malvorn t\'attend : suite au prochain chapitre.';}
+        :'Tu maîtrises les vingt-quatre pouvoirs de ton clan. Continue l\'histoire jusqu\'au bout pour affronter Malvorn.';}
     default:return lastQuestTxt;}}
 function questTarget(){if(!S)return null;
   switch(S.quest){
@@ -933,8 +1180,13 @@ function questTarget(){if(!S)return null;
     case 'exam':return ARENA;
     case 'tour':{const k=tourKeys().find(k=>!S.met[k]);return k?cityPx(k):null;}
     case 'pactMaster':{const m=MASTERS.find(m=>m.id===S.clan);return m?{x:m.x,y:m.y}:null;}
-    case 'pactShrine':return SHRINE[S.clan];
-    case 'grow6':case 'grow10':case 'free':{const L=SPELLS[S.clan];
+    case 'pactShrine':case 'pact2':return SHRINE[S.clan];
+    case 'hideout':{if(!S.camps)return null;const c=S.camps.find(c=>!c.cleared);return c?{x:c.x,y:c.y}:null;}
+    case 'fortress':return{x:FORT.x,y:FORT.y};
+    case 'malvornFight':{const e=enemies.find(e=>e.mfinal&&!e.dead);return e?{x:e.x,y:e.y}:{x:FORT.x,y:FORT.y};}
+    case 'attack2':return cityPx(S.clan);
+    case 'gods':{const k=godShrineLeft()[0];return k?SHRINE[k]:null;}
+    case 'grow6':case 'grow10':case 'trainUlt':case 'free':{const L=SPELLS[S.clan];
       const i=L.findIndex((s,j)=>!S.learned[j]&&S.lvl>=s.lvl);if(i<0)return null;
       const m=MASTERS.find(m=>m.id===teacherOf(L[i]));return m?{x:m.x,y:m.y}:null;}
     case 'attack':{const e=enemies.find(e=>e.wave&&!e.dead);return e?{x:e.x,y:e.y}:null;}
@@ -989,7 +1241,52 @@ const TXT={
     {who:'Valerian',text:`Tu as sauvé Astralis, ${N()}. Les quatre clans ont combattu côte à côte cette nuit, pour la première fois depuis des générations.`},
     {who:'Zephyr',text:'…Bien joué. Vraiment. Mais la prochaine fois, c\'est moi qui tiens la porte principale.'},
     {who:'Valerian',text:`Ce qui vient ensuite dépasse ce que je sais enseigner. Retourne à ${CL().city}, va voir ton maître, et dis-lui que je t'envoie pour le pacte.`},
-    {who:'Valerian',text:'Si Malvorn a pactisé avec le diable, tu devras pactiser avec un dieu. C\'est la seule façon de tenir devant lui.'}]
+    {who:'Valerian',text:'Si Malvorn a pactisé avec le diable, tu devras pactiser avec un dieu. C\'est la seule façon de tenir devant lui.'}],
+  fortFound:()=>[
+    {text:'Dans les cendres du dernier campement, une carte à moitié brûlée. Une croix, loin au nord-ouest, au-delà des montagnes du vent.'},
+    {who:'Valerian',text:'Quarante ans que je cherche cet endroit. Une forteresse, bâtie avec nos propres pierres volées, là où personne ne va jamais.'},
+    {who:'Valerian',text:`Je ne peux pas y envoyer une armée sans vider Astralis de ses gardes. Alors j'envoie ce que j'ai de mieux. Vas-y, ${N()}.`}],
+  malvorn:()=>[
+    {text:'Korvax s\'écroule au pied du donjon. La porte s\'ouvre d\'elle-même, et un homme en sort sans se presser.'},
+    {who:'Malvorn',text:`Ainsi c'est toi. L'enfant à l'épée. Valerian t'a bien choisi : tu te bats exactement comme lui, il y a quarante ans.`},
+    {who:'Malvorn',text:'Tu as tué mon général et brûlé ma forteresse, au cœur même de ces cendres où je me croyais invisible. Je devrais être furieux.'},
+    {who:N(),text:'Alors reste et bats-toi.'},
+    {text:'Un grondement répond à sa place : des ailes de griffon, puis le choc sourd de bottes sur la pierre noircie. Valerian. Seul, sans sa garde.'},
+    {who:'Valerian',text:'Malvorn. Quarante ans que je m\'entraîne pour cette conversation. Je ne l\'ai pas envoyé finir ça à ma place.'},
+    {who:'Malvorn',text:'Toujours ce sens du devoir, Valerian. C\'est ce qui t\'a perdu, la première fois. Voyons si ça a changé.'},
+    {text:'L\'empereur lève la main : des éclairs d\'argent crépitent entre ses doigts, le même geste que tu lui as vu enseigner mille fois. Malvorn répond par une lame d\'ombre qui boit la lumière.'},
+    {text:'Ils se heurtent trois fois. À la troisième, les éclairs de Valerian s\'éteignent net, happés par l\'ombre, et la lame ressort de l\'autre côté de son armure.'},
+    {who:'Valerian',text:`Reste... derrière moi n'a jamais été ta place, ${N()}. Je suis désolé.`},
+    {text:'L\'empereur s\'effondre. Le silence qui suit est pire que n\'importe quelle bataille.'},
+    {who:'Malvorn',text:`Voilà. C'est fait, et ça ne m'a donné aucun plaisir. Mais toi — toi, tu tiens encore debout, avec cinq pouvoirs d'un dieu qui n'a jamais rien donné à personne avant toi.`},
+    {who:'Malvorn',text:'Alors finis-le, si tu peux. Finis ce que ton empereur vient de commencer.'}],
+  malvornDown:()=>[
+    {text:'Malvorn plie un genou, puis l\'autre. L\'ombre qui l\'enveloppait depuis quarante ans se dissipe enfin, et pour la première fois il a juste l\'air d\'un vieil homme fatigué.'},
+    {who:'Malvorn',text:`Tu te bats comme lui, et tu gagnes comme personne avant toi. Le pacte s'arrête ici, ${N()}. Fais-en meilleur usage que moi.`},
+    {text:'Il n\'y a plus de fumée noire, cette fois. Juste un homme qui ferme les yeux, dans les cendres de sa propre forteresse.'}],
+  throne:()=>[
+    {text:'On te ramène le corps de Valerian jusqu\'au palais d\'Astralis. Les quatre clans se tiennent sur les remparts, en silence, pour la première fois réunis sans qu\'une attaque les y oblige.'},
+    {who:'Maître Oryn',text:`Il n'avait pas d'héritier de sang. Il en avait un autre, en revanche : celui qui a porté ses éclairs jusqu'au bout.`},
+    {who:'Maître Oryn',text:`Le trône d'Astralis t'attend, ${N()}. Que décides-tu ?`},
+    {text:'Tu poses la main sur le pommeau de l\'épée que tu as trouvée dans un hameau, il y a ce qui semble une éternité. Puis tu montes les marches du palais.'},
+    {text:`${N()} règne désormais sur Astralis et les quatre clans. Mais une couronne ne rembourse pas une dette envers trois dieux qu'on n'a pas encore été remercier.`}],
+  allGods:()=>[
+    {text:'Les quatre dieux d\'Élémentia ont posé la main sur toi. Aucun magicien n\'avait obtenu ça depuis le premier empereur — et maintenant, c\'est toi, l\'empereur.'},
+    {who:'Maître Oryn',text:`Malvorn est tombé, Valerian est vengé, et le trône tient. Il ne reste qu'une question : que fait-on d'un royaume qui n'a plus d'ennemi ?`},
+    {text:'Fin du troisième chapitre d\'Élémentia. À suivre : le règne, la cité où les quatre clans vivront ensemble, et ce qui dormait sous Astralis depuis bien plus longtemps que Malvorn.'}],
+  attack2Call:()=>[
+    {text:`Tu viens à peine de maîtriser ${SPELLS[S.clan].find(s=>s.ic==='ult').n} que la pierre de la tour se met à vibrer. Un garde entre en courant.`},
+    {who:'Un garde',text:`Un message de ${CL().city} ! Les Oubliés sont entrés sous le dôme ! Ils sont déjà dans les rues !`},
+    {who:'Valerian',text:'Sous le dôme… Ce n\'est pas une razzia, c\'est une exécution. Ils savent qui ils viennent chercher.'},
+    {who:'Valerian',text:'Cours. Prends le portail. Et ne me demande pas la permission.'}],
+  masterDies:()=>[
+    {text:'Le dernier Oublié tombe. Le silence revient d\'un coup, et c\'est pire que le bruit.'},
+    {text:`La tour du maître brûle encore. ${CL().master} est assise contre le mur, la main sur le flanc.`},
+    {who:CL().master,text:`Tu es venu vite. C'est bien. Ils étaient trop nombreux, et ils savaient exactement où chercher.`},
+    {who:N(),text:'Ne parlez pas. Je vais chercher de l\'aide.'},
+    {who:CL().master,text:`Non. Écoute-moi : ne va pas chez Valerian. Va voir le dieu. Pas pour demander. Pour exiger.`},
+    {who:CL().master,text:'J\'ai passé ma vie à vous apprendre à être polis avec lui. C\'était une erreur.'},
+    {text:'Elle ne finit pas sa phrase. Le dôme de la cité s\'éteint une seconde, puis se rallume.'}]
 };
 function chooseGuild(i){const g=GUILDS[i];S.guild=i;makeComp();
   say([{who:g.cap,text:`Bienvenue chez ${g.n}. Notre siège est le bâtiment à l'est de la place. ${g.mate}, du clan ${GEN[COMP[S.clan]]}, y tient le registre : nous mélangeons les clans, ici.`},
@@ -1015,13 +1312,15 @@ function showBanner(title,sub,life=3.2){banner={title,sub,t:0,life};}
 const SLOTS=['auto','1','2','3'];
 const KEYOF=s=>'elementia-v4-'+s;
 const OLDKEY='elementia-save-v3';
-function initPlayer(x,y){P={x,y,r:12,hp:0,maxHp:100+(S.lvl-1)*22,face:Math.PI/2,inv:1,shield:0,shieldT:0,buffT:0,
+function initPlayer(x,y){P={x,y,r:12,hp:0,maxHp:hpMax(S.lvl),face:Math.PI/2,inv:1,shield:0,shieldT:0,buffT:0,
   hasteT:0,avatarT:0,divTrail:0,regenT:0,regenR:0,mounted:false,swing:0,swingA:0,walk:0,
   cds:new Array(MAXSP).fill(0),swordCd:0,hazAcc:0,hurtT:0};P.hp=P.maxHp;}
-function resetWorld(){enemies=[];projs=[];fx=[];zones=[];summons=[];pickups=[];timers=[];comp=null;fireSpots.length=0;spawnT=5;interact=null;page=0;}
+function resetWorld(){enemies=[];projs=[];fx=[];zones=[];summons=[];pickups=[];timers=[];comp=null;fireSpots.length=0;spawnT=5;interact=null;}
 function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=true;
   return{name,clan,tunic,lvl:1,xp:0,orbes:0,quest:'tuto',guild:null,mount:false,sword:false,pact:false,divine:-1,
-    learned:l,met:{},disc:{},incant:null,gq:null,gqDone:0,play:0,
+    learned:l,met:{},disc:{},incant:null,incantKind:null,gq:null,gqDone:0,play:0,
+    divines:[],pact2:false,pact2started:false,masterDead:false,emperor:false,questBefore:null,camps:null,gods:[],bless:[],
+    bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
 function newGame(name,clan,tunic){resetWorld();S=freshState(name,clan,tunic);
   const c=cityPx(clan);initPlayer(c.x,c.y+3*T);S.disc[clan]=true;
@@ -1035,7 +1334,16 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.met=d.met||{};S.disc=d.disc||{};S.disc[d.clan]=true;S.gqDone=d.gqDone||0;
   S.gq=(d.gq&&typeof d.gq.need==='number')?d.gq:null;
   if(typeof d.tutoLeft==='number')S.tutoLeft=d.tutoLeft;
-  if(S.quest==='attack'||S.quest==='_')S.quest=S.lvl>=10?'recall':S.lvl>=6?'tour':'grow6';
+  S.divines=Array.isArray(d.divines)?d.divines.slice():(typeof d.divine==='number'&&d.divine>=0?[d.divine]:[]);
+  S.pact2=!!d.pact2;S.pact2started=!!d.pact2started;S.masterDead=!!d.masterDead;S.emperor=!!d.emperor;
+  S.camps=Array.isArray(d.camps)?d.camps.map(c=>Object.assign({},c,{spawned:false})):null;
+  S.gods=Array.isArray(d.gods)?d.gods.slice():[];S.bless=Array.isArray(d.bless)?d.bless.slice():[];
+  S.questBefore=d.questBefore||null;
+  if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<NSP&&S.learned[i]).slice(0,DPER);
+  if(!S.bar.length)S.bar=[0];
+  if(S.quest==='attack'||S.quest==='attack2'||S.quest==='fortress'||S.quest==='malvornFight'||S.quest==='_')
+    S.quest=S.emperor?'gods':S.pact2?(S.camps&&S.camps.every(c=>c.cleared)?'fortress':'hideout')
+      :S.masterDead?'pact2':S.pact?'trainUlt':S.lvl>=10?'recall':S.lvl>=6?'tour':'grow6';
   const c=cityPx(S.clan);initPlayer(d.x||c.x,d.y||c.y);if(blocked(P.x,P.y,P.r)){P.x=c.x;P.y=c.y;}
   if(d.hp)P.hp=clamp(d.hp,1,P.maxHp);
   if(S.quest==='tuto')startTuto();
@@ -1044,7 +1352,10 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   cam.x=P.x-VW/ZOOM/2;cam.y=P.y-VH/ZOOM/2;showBanner('Bon retour, '+S.name,questText(),3);}
 function stableQuest(){
   if(S.quest!=='_')return S.quest;
-  if(S.pact)return'free';
+  if(S.emperor)return'gods';
+  if(S.pact2)return(S.camps&&S.camps.every(c=>c.cleared))?'fortress':'hideout';
+  if(S.masterDead)return'pact2';
+  if(S.pact)return'trainUlt';
   if(S.lvl>=10)return'recall';
   if(S.guild!=null)return S.lvl>=6?'tour':'grow6';
   if(S.sword)return'travel';
@@ -1052,6 +1363,8 @@ function stableQuest(){
 function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   name:S.name,clan:S.clan,tunic:S.tunic,lvl:S.lvl,xp:S.xp,orbes:S.orbes,
   quest:stableQuest(),guild:S.guild,mount:S.mount,sword:S.sword,pact:S.pact,divine:S.divine,
+  divines:S.divines,pact2:S.pact2,pact2started:S.pact2started,masterDead:S.masterDead,emperor:S.emperor,
+  camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -1188,7 +1501,7 @@ function update(dt){
     if(e.kvx||e.kvy){moveEnt(e,e.kvx*dt,e.kvy*dt);const f=Math.exp(-8*dt);e.kvx*=f;e.kvy*=f;if(Math.abs(e.kvx)<2)e.kvx=0;if(Math.abs(e.kvy)<2)e.kvy=0;}
     if(e.def.passive)continue;
     const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;
-    if(!atk&&!e.tuto&&!e.camp&&d>2600){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&d>2600){e.dead=true;continue;}
     if(e.stun>0){e.stun-=dt;e.slow=1;continue;}
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
@@ -1289,6 +1602,10 @@ function decor(x,y,b,v){const cx=x+T/2,cy=y+T*.7;
     case 3:{ctx.strokeStyle='#9a8f74';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-6,cy+4);ctx.lineTo(cx-2,cy-8);
       ctx.moveTo(cx+2,cy+4);ctx.lineTo(cx+6,cy-6);ctx.stroke();
       ctx.fillStyle='#d8cdb4';circ(cx-2,cy-10,2.5);break;}
+    case 5:{ctx.fillStyle='#3a2f28';ell(cx,cy+2,8,4);ctx.strokeStyle='#5a4a3c';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(cx-5,cy);ctx.lineTo(cx-2,cy-10);ctx.moveTo(cx+1,cy-1);ctx.lineTo(cx+5,cy-11);ctx.stroke();
+      ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#ff8a3a',.25+Math.sin(time*4+x)*.08);circ(cx+1,cy-3,4+v);
+      ctx.globalCompositeOperation='source-over';break;}
     default:{ctx.fillStyle=['#c96f8a','#d8c15a','#9a7fd0'][v];
       for(let k=0;k<3;k++)circ(cx-6+k*6,cy-4-(k%2)*4,2.5);
       ctx.fillStyle='#4a6b45';ctx.fillRect(cx-7,cy-2,1.5,6);ctx.fillRect(cx-1,cy-6,1.5,10);ctx.fillRect(cx+5,cy-2,1.5,6);}}}
@@ -1666,28 +1983,29 @@ function drawAim(){const C=CL(),lock=AIM.lock,d=dist(P.x,P.y,AIM.x,AIM.y);
 
 /* ---------- boutons ---------- */
 const DPER=10,TPER=5;
-const nPages=()=>Math.ceil(NSP/(touchMode?TPER:DPER));
-function slotsOf(){const per=touchMode?TPER:DPER,st=page*per,out=[];
-  for(let i=0;i<per;i++){const idx=st+i;if(idx<NSP)out.push(idx);}return out;}
+function slotsOf(){return S.bar.slice(0,DPER);}
+function divSlots(){return(S.divines||[]).map((_,k)=>NSP+k);}
 function layoutButtons(){const B=[];if(!S)return B;
   if(touchMode){const bx=VW-80-INS.r,by=VH-78-INS.b,R=74,rad=d=>d*Math.PI/180;
     B.push({id:'atk',x:bx,y:by,r:30});
-    const ids=slotsOf();
+    const ids=slotsOf().slice(0,TPER),ids2=slotsOf().slice(TPER,TPER*2);
     [188,152,116,80,44].forEach((d,i)=>{if(ids[i]===undefined)return;
       B.push({id:ids[i],x:bx+Math.cos(rad(d))*R,y:by-Math.sin(rad(d))*R,r:21});});
-    B.push({id:'page',x:bx+Math.cos(rad(224))*R,y:by-Math.sin(rad(224))*R,r:16});
-    B.push({id:DIV,x:bx+Math.cos(rad(8))*R*.92,y:by-Math.sin(rad(8))*R*.92,r:19});
+    [204,168,132,96,60].forEach((d,i)=>{if(ids2[i]===undefined)return;
+      B.push({id:ids2[i],x:bx+Math.cos(rad(d))*R*1.62,y:by-Math.sin(rad(d))*R*1.62,r:19});});
+    B.push({id:'gm',x:bx+Math.cos(rad(224))*R,y:by-Math.sin(rad(224))*R,r:16});
+    divSlots().forEach((id,k)=>{B.push({id,x:bx+Math.cos(rad(8-k*20))*R*.92,y:by-Math.sin(rad(8-k*20))*R*.92,r:17});});
     const rx=VW-28-INS.r,ry=(VW<620?126:166)+INS.t;
     B.push({id:'help',x:rx,y:ry,r:16});
     B.push({id:'mount',x:rx,y:ry+40,r:16});
     if(interact)B.push({id:'act',x:rx,y:ry+80,r:20});}
-  else{const ids=slotsOf(),n=ids.length+2,compact=VW<900;
+  else{const ids=slotsOf(),dv=divSlots(),n=ids.length+dv.length+2,compact=VW<900;
     const sz=compact?Math.min(44,(VW-70)/n-4):50,gap=compact?4:8;
     const w=n*sz+(n-1)*gap,x0=VW/2-w/2,y=VH-sz-16-INS.b;
     let k=0;B.push({id:'atk',x:x0+sz/2,y:y+sz/2,r:sz/2,sq:1});k++;
     for(const i of ids){B.push({id:i,x:x0+k*(sz+gap)+sz/2,y:y+sz/2,r:sz/2,sq:1});k++;}
-    B.push({id:DIV,x:x0+k*(sz+gap)+sz/2,y:y+sz/2,r:sz/2,sq:1});
-    if(nPages()>1)B.push({id:'page',x:x0-26,y:y+sz/2,r:16});}
+    for(const id of dv){B.push({id,x:x0+k*(sz+gap)+sz/2,y:y+sz/2,r:sz/2,sq:1});k++;}
+    B.push({id:'gm',x:x0-26,y:y+sz/2,r:16});}
   return B;}
 function hitBtn(x,y){for(const b of layoutButtons())if(Math.hypot(x-b.x,y-b.y)<b.r+6)return b;return null;}
 function icon(type,x,y,s,col){ctx.save();ctx.translate(x,y);ctx.strokeStyle=col;ctx.fillStyle=col;
@@ -1739,8 +2057,9 @@ function icon(type,x,y,s,col){ctx.save();ctx.translate(x,y);ctx.strokeStyle=col;
       rrect(-s*.26,-s*.1,s*.52,s*.42,3);ctx.fill();break;
     case 'mount':ctx.beginPath();ctx.ellipse(0,s*.05,s*.42,s*.2,0,0,TAU);ctx.stroke();
       ctx.beginPath();ctx.moveTo(s*.3,-s*.05);ctx.lineTo(s*.45,-s*.35);ctx.stroke();break;
-    case 'page':ctx.font=`800 ${s*.85}px ${FB}`;ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText((page+1)+'/'+nPages(),0,1);break;
+    case 'gm':ctx.beginPath();ctx.moveTo(0,-s*.4);ctx.lineTo(0,s*.4);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-s*.4,-s*.32);ctx.quadraticCurveTo(0,-s*.46,0,-s*.4);ctx.quadraticCurveTo(0,-s*.46,s*.4,-s*.32);
+      ctx.lineTo(s*.4,s*.32);ctx.quadraticCurveTo(0,s*.46,0,s*.4);ctx.quadraticCurveTo(0,s*.46,-s*.4,s*.32);ctx.closePath();ctx.stroke();break;
     case 'act':ctx.font=`800 ${s*.9}px ${FB}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('E',0,1);break;
     case 'help':ctx.font=`800 ${s}px ${FB}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('?',0,1);break;}
   ctx.restore();ctx.textBaseline='alphabetic';ctx.textAlign='left';}
@@ -1783,7 +2102,7 @@ function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact
   ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1;ctx.strokeRect(mx+cam.x*k,my+cam.y*k,VW/ZOOM*k,VH/ZOOM*k);
   if(!touchMode){ctx.font=`600 12px ${FB}`;ctx.fillStyle='#a4a9c4';ctx.textAlign='right';
     ctx.fillText(S.mount?`M : ${C.mount}${P.mounted?' (monté)':''}`:'H : commandes',VW-12-INS.r,my+ms+22);
-    if(S.mount)ctx.fillText('Tab : page de sorts · H : commandes',VW-12-INS.r,my+ms+38);ctx.textAlign='left';}
+    if(S.mount)ctx.fillText('G : grimoire des sorts · H : commandes',VW-12-INS.r,my+ms+38);ctx.textAlign='left';}
   if(interact&&!touchMode){const t='E  ·  '+interact.label;ctx.font=`700 15px ${FB}`;const w=ctx.measureText(t).width+26;
     panel(VW/2-w/2,VH-130-INS.b,w,34);ctx.fillStyle='#e6c46a';ctx.textAlign='center';ctx.fillText(t,VW/2,VH-108-INS.b);ctx.textAlign='left';}
   if(S.incant!=null){const w=Math.min(340,VW-60),x=VW/2-w/2,y=VH*.18;
@@ -1806,18 +2125,18 @@ function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact
   // barre de sorts
   const SP=SPELLS[S.clan];
   for(const b of layoutButtons()){
-    const isSp=typeof b.id==='number',divine=b.id===DIV;
-    const sp=divine?(S.divine>=0?DIVINE[S.divine]:null):isSp?SP[b.id]:null;
+    const isSp=typeof b.id==='number',divine=isSp&&b.id>=NSP;
+    const sp=isSp?spellAt(b.id):null;
     const lvlLock=isSp&&!divine&&S.lvl<sp.lvl,noLearn=isSp&&!divine&&!lvlLock&&!S.learned[b.id];
-    const locked=divine?S.divine<0:(lvlLock||noLearn);
+    const locked=divine?false:(lvlLock||noLearn);
     ctx.fillStyle=touchMode?'rgba(12,15,30,.55)':'rgba(12,15,30,.84)';
     if(b.sq)rrect(b.x-b.r,b.y-b.r,b.r*2,b.r*2,9);else{ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);}ctx.fill();
-    ctx.strokeStyle=b.id==='act'?'#e6c46a':divine?(locked?'rgba(230,196,106,.3)':'#e6c46a')
+    ctx.strokeStyle=b.id==='act'?'#e6c46a':divine?'#e6c46a'
       :isSp||b.id==='atk'?rgba(C.col,locked?.18:.65):'rgba(200,205,230,.4)';
     ctx.lineWidth=divine||b.id==='act'?2.5:1.5;ctx.stroke();
     const col=locked?(noLearn?'#8a7a4a':'#5a5f78'):b.id==='act'?'#e6c46a':b.id==='mount'?(P.mounted?C.col:'#c9cde0')
-      :b.id==='help'||b.id==='page'?'#c9cde0':divine?'#e6c46a':C.col;
-    const ic=b.id==='atk'?(S.sword?'sword':'lock'):typeof b.id==='string'?b.id:divine?(sp?sp.ic:'lock'):sp.ic;
+      :b.id==='help'||b.id==='gm'?'#c9cde0':divine?'#e6c46a':C.col;
+    const ic=b.id==='atk'?(S.sword?'sword':'lock'):typeof b.id==='string'?b.id:sp?sp.ic:'lock';
     icon(ic,b.x,b.y-(b.sq?4:0),b.r*.95,col);
     let cd=0,max=1;if(b.id==='atk'){cd=Math.max(0,P.swordCd);max=.34;}else if(isSp){cd=P.cds[b.id];max=sp?sp.cd:1;}
     if(cd>0&&max>0){ctx.fillStyle='rgba(5,6,14,.65)';ctx.beginPath();ctx.moveTo(b.x,b.y);
@@ -1826,7 +2145,7 @@ function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact
     if(locked&&isSp&&!divine){ctx.font=`800 10px ${FB}`;ctx.textAlign='center';ctx.fillStyle=noLearn?'#d8c07a':'#a4a9c4';
       ctx.fillText(noLearn?'maître':'niv '+sp.lvl,b.x,b.y+(b.sq?19:16));ctx.textAlign='left';}
     if(b.sq){ctx.font=`800 10px ${FB}`;ctx.fillStyle='#a4a9c4';
-      const key=b.id==='atk'?'⎵':divine?'R':String((b.id%DPER)===9?0:(b.id%DPER)+1);
+      const key=b.id==='atk'?'⎵':divine?DKEYS[b.id-NSP]:String((S.bar.indexOf(b.id)+1)%10);
       ctx.fillText(key,b.x-b.r+5,b.y-b.r+12);
       if(!locked&&b.r>20&&sp){ctx.font=`600 9px ${FB}`;ctx.textAlign='center';ctx.fillStyle='#c9cde0';
         const nm=sp.n;ctx.fillText(nm.length>12?nm.slice(0,11)+'.':nm,b.x,b.y+b.r-5);ctx.textAlign='left';}
@@ -1860,7 +2179,7 @@ function render(){ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#0b0d18';ctx.
   if(S&&P)drawHUD();drawBanner();}
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;time+=dt;
-  const paused=dlgOpen||helpOpen||savesOpen;
+  const paused=dlgOpen||helpOpen||savesOpen||grimOpen;
   if(S&&P&&!paused)update(dt);updCommon(paused?0:dt);
   if(autoFlash>0)autoFlash-=dt;
   render();requestAnimationFrame(frame);}
@@ -1869,15 +2188,17 @@ requestAnimationFrame(frame);
 /* ---------- entrées ---------- */
 const titleEl=$('#title'),helpEl=$('#help');
 function inGame(){return S&&P&&titleEl.hidden&&!savesOpen;}
-function castSlot(n){cast(page*(touchMode?TPER:DPER)+n);}
+function castSlot(n){cast(S.bar[n]);}
 addEventListener('keydown',e=>{if(!inGame())return;
   if(helpOpen){if(e.code==='Escape'||e.code==='KeyH'){closeHelp();e.preventDefault();}return;}
+  if(grimOpen){if(e.code==='Escape'||e.code==='KeyB'){closeGrimoire();e.preventDefault();}return;}
   if(dlgOpen){if(!dChoice&&['Enter','Space','KeyE','NumpadEnter'].includes(e.code)){nextLine();e.preventDefault();}return;}
   keys[e.code]=true;
+  const dk=e.code.indexOf('Key')===0?DKEYS.indexOf(e.code.slice(3)):-1;
   if(/^(Digit|Numpad)[1-9]$/.test(e.code))castSlot(Number(e.code.slice(-1))-1);
   else if(/^(Digit|Numpad)0$/.test(e.code))castSlot(9);
-  else if(e.code==='KeyR')cast(DIV);
-  else if(e.code==='Tab'){page=(page+1)%nPages();e.preventDefault();}
+  else if(dk>=0)cast(NSP+dk);
+  else if(e.code==='KeyB'){e.preventDefault();openGrimoire();}
   else if(e.code==='KeyE')doInteract();
   else if(e.key&&e.key.toLowerCase()==='m')toggleMount();
   else if(e.code==='Space'||e.code==='KeyJ')attackHeld=true;
@@ -1886,14 +2207,14 @@ addEventListener('keydown',e=>{if(!inGame())return;
 addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='Space'||e.code==='KeyJ')attackHeld=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;attackHeld=false;joy.active=false;});
 let atkPointer=null;
-cv.addEventListener('pointerdown',e=>{if(!inGame()||dlgOpen||helpOpen)return;cv.focus();
-  if(e.pointerType==='touch'){if(!touchMode){touchMode=true;page=0;}}
-  else if(e.pointerType==='mouse'){if(touchMode){touchMode=false;page=0;}}
+cv.addEventListener('pointerdown',e=>{if(!inGame()||dlgOpen||helpOpen||grimOpen)return;cv.focus();
+  if(e.pointerType==='touch'){if(!touchMode)touchMode=true;}
+  else if(e.pointerType==='mouse'){if(touchMode)touchMode=false;}
   const b=hitBtn(e.clientX,e.clientY);
   if(b){e.preventDefault();
     if(b.id==='atk'){atkPointer=e.pointerId;attackHeld=true;}
     else if(b.id==='mount')toggleMount();else if(b.id==='help')openHelp();
-    else if(b.id==='page')page=(page+1)%nPages();else if(b.id==='act')doInteract();else cast(b.id);
+    else if(b.id==='gm')openGrimoire();else if(b.id==='act')doInteract();else cast(b.id);
     return;}
   if(e.pointerType!=='mouse'){
     if(e.clientX<VW*.55){joy.active=true;joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=0;joy.dy=0;}
@@ -1962,6 +2283,28 @@ $('#savImport').onclick=()=>{const d=importCode(savCode.value||'');
   savesOpen=false;savEl.hidden=true;titleEl.hidden=true;dlg.hidden=true;dlgOpen=false;
   loadGame(d);writeSlot('auto');cv.focus();};
 
+/* ---------- grimoire : choisir les sorts de la barre rapide ---------- */
+const gmEl=$('#grimoire'),gmGrid=$('#gmGrid');
+function openGrimoire(){if(!S||!P)return;grimOpen=true;attackHeld=false;for(const k in keys)keys[k]=false;
+  buildGrimoire();gmEl.hidden=false;$('#gmClose').focus();}
+function closeGrimoire(){grimOpen=false;gmEl.hidden=true;cv.focus();}
+function togglePin(i){const p=S.bar.indexOf(i);
+  if(p>=0)S.bar.splice(p,1);
+  else{if(S.bar.length>=DPER)S.bar.shift();S.bar.push(i);}
+  buildGrimoire();}
+function buildGrimoire(){const SP=SPELLS[S.clan];gmGrid.innerHTML='';
+  SP.forEach((sp,i)=>{const learned=S.learned[i],lvlOk=S.lvl>=sp.lvl,pinned=S.bar.includes(i);
+    const c=document.createElement('div');c.className='gmcard'+(pinned?' pinned':'')+(learned?'':' locked');
+    const nm=document.createElement('div');nm.className='gnm';nm.textContent=sp.n;c.appendChild(nm);
+    const sub=document.createElement('div');sub.className='gsub';
+    sub.textContent=learned?'Niveau '+sp.lvl+' · '+teachLabel(sp):(lvlOk?'À apprendre chez '+teachLabel(sp):'Niveau '+sp.lvl+' requis');
+    c.appendChild(sub);
+    const b=document.createElement('button');b.type='button';b.className='gmpin'+(pinned?' on':'');
+    b.setAttribute('aria-label',pinned?'Retirer de la barre':'Épingler dans la barre');b.textContent=pinned?'★':'☆';
+    if(learned)b.onclick=()=>togglePin(i);else b.disabled=true;
+    c.appendChild(b);gmGrid.appendChild(c);});}
+$('#gmClose').onclick=closeGrimoire;
+
 /* ---------- écran titre ---------- */
 const pick={clan:'elec',tunic:TUNICS[0]};
 function buildTitle(){const box=$('#clans');box.innerHTML='';
@@ -1983,9 +2326,16 @@ buildTitle();
 if(location.search.indexOf('dbg')>=0)window.E={
   s:()=>S,p:()=>P,lvl:n=>{while(S.lvl<n)levelUp();},all:()=>{S.learned.fill(true);S.sword=true;S.mount=true;},
   go:(x,y)=>{P.x=x;P.y=y;},tp:k=>{const c=k==='cap'?CAP:cityPx(k);P.x=c.x;P.y=c.y+60;},
-  q:k=>{S.quest=k;},pact:()=>{S.pact=true;S.divine=0;},
-  vill:()=>swordVillage(),shr:()=>SHRINE[S.clan],
-  where:()=>({q:S.quest,lvl:S.lvl,x:Math.round(P.x/T),y:Math.round(P.y/T),sword:S.sword,div:S.divine})};
+  q:k=>{S.quest=k;},pact:()=>{S.pact=true;S.divine=0;S.divines=[0];},
+  pact2:()=>{S.pact2=true;S.divines=[0,1,2,3,4];},
+  ult:()=>{const i=SPELLS[S.clan].findIndex(s=>s.ic==='ult');if(i>=0)learn(i);},
+  vill:()=>swordVillage(),shr:()=>SHRINE[S.clan],fort:()=>FORT,
+  where:()=>({q:S.quest,lvl:S.lvl,x:Math.round(P.x/T),y:Math.round(P.y/T),sword:S.sword,div:S.divine,divines:S.divines,bar:S.bar,emperor:S.emperor}),
+  gm:()=>openGrimoire(),gmClose:()=>closeGrimoire(),
+  clearFoes:()=>{enemies.length=0;},incant:(v,kind)=>{S.incant=v;if(kind)S.incantKind=kind;},awave:n=>{S.awave=n;S.awaveOn=true;},
+  pick:n=>{const b=document.querySelectorAll('#dCh button');if(b[n])b[n].click();},
+  foes:()=>enemies.filter(e=>!e.dead).map(e=>({nm:e.def.nm,mfinal:!!e.mfinal,hp:e.hp})),
+  learn:i=>learn(i)};
 })();
 </script>
 </body>
