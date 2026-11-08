@@ -327,6 +327,19 @@ const COUNCIL={x:CAP.x-9.5*T,y:(CY+2)*T};
 const TEMPLE={x:CAP.x+16*T,y:(CY+10)*T};
 const ACADEMY={x:CAP.x-16*T,y:(CY+10)*T};
 const GUARDPOST=[{x:CAP.x-6*T,y:(CY+3.5)*T},{x:CAP.x+6*T,y:(CY+3.5)*T}];
+// effets réels des décisions "abstraites" du conseil (muraille, commerce, bibliothèque, monnaie), et grands
+// travaux financés librement une fois le règne commencé - tous placés sur des angles décalés des diagonales
+// des quatre clans (45°/135°/225°/315°, direction des villages) pour ne jamais se retrouver mêlés à un village
+function worksPt(deg,r){const a=deg*Math.PI/180;return{x:CAP.x+Math.cos(a)*r*T,y:CAP.y+Math.sin(a)*r*T};}
+const WALLTOWERS=[0,90,180,270].map(d=>worksPt(d,CAPR-3));
+const MARKET=worksPt(22.5,22);
+const LIBRARY=worksPt(157.5,23);
+const MINT=worksPt(337.5,23);
+const ARCH=worksPt(67.5,24);
+const FOUNTAIN=worksPt(292.5,22);
+const STATUE=worksPt(202.5,24);
+const OBSERVATORY=worksPt(112.5,25);
+const GARDENS=worksPt(247.5,24);
 // ombres de nuages qui dérivent lentement sur la carte (effet de profondeur façon "parallax" vu du dessus)
 const CLOUDS=(()=>{const a=[];for(let i=0;i<7;i++)a.push({x0:rnd(0,W*T),y0:rnd(0,H*T),r:rnd(260,480),vx:rnd(7,16)*(i%2?1:-1),vy:rnd(-5,5),ph:rnd(0,TAU)});return a;})();
 function cloudAt(c,t){const span=Math.max(W,H)*T+c.r*2;
@@ -1170,30 +1183,116 @@ const DECISIONS=[
    options:[{label:'Une grande fête, à tes frais',sub:'Des guirlandes et des feux sur la grande place, pour de vrai · -50 orbes',title:'le Généreux',orbes:-50,effect:'festival'},
             {label:'Une cérémonie sobre',sub:'+25 orbes gardés',title:'l\'Austère',orbes:25}]},
   {id:'muraille',prompt:'Les ingénieurs proposent de renforcer les murailles d\'Astralis contre une prochaine guerre.',
-   options:[{label:'Financer les fortifications',sub:'-70 orbes, mais le royaume dort tranquille',title:'le Prévoyant',orbes:-70},
+   options:[{label:'Financer les fortifications',sub:'Quatre tours de garde s\'élèvent vraiment sur les remparts · -70 orbes',title:'le Prévoyant',orbes:-70,effect:'wall'},
             {label:'Le trésor avant les pierres',sub:'+45 orbes gardés',title:'l\'Économe',orbes:45}]},
   {id:'commerce',prompt:'Les quatre cités proposent un marché commun, ouvert à tous les clans, à Astralis.',
-   options:[{label:'Ouvrir le grand marché',sub:'+140 orbes de taxes commerciales',title:'le Marchand',orbes:140},
+   options:[{label:'Ouvrir le grand marché',sub:'Un vrai marché s\'installe sur la place, au sud du palais · +140 orbes de taxes',title:'le Marchand',orbes:140,effect:'market'},
             {label:'Garder les marchés séparés',sub:'+35 orbes, la tradition rassure',title:'le Conservateur',orbes:35}]},
   {id:'bibliotheque',prompt:'Les érudits veulent consigner l\'histoire de la guerre contre Malvorn dans une grande bibliothèque.',
-   options:[{label:'La financer',sub:'-35 orbes, ton nom traversera les siècles',title:'le Mémorieux',orbes:-35},
+   options:[{label:'La financer',sub:'Une bibliothèque s\'élève vraiment à l\'ouest d\'Astralis · -35 orbes',title:'le Mémorieux',orbes:-35,effect:'library'},
             {label:'L\'histoire se racontera seule',sub:'+15 orbes gardés',title:'le Discret',orbes:15}]},
   {id:'monnaie',prompt:'Faut-il frapper une monnaie impériale unique, à ton effigie, pour remplacer les orbes de chaque clan ?',
-   options:[{label:'Oui, une seule monnaie pour tous',sub:'+110 orbes de conversion',title:'l\'Empereur-pièce',orbes:110},
+   options:[{label:'Oui, une seule monnaie pour tous',sub:'Un hôtel de la monnaie s\'élève vraiment à l\'est d\'Astralis · +110 orbes',title:'l\'Empereur-pièce',orbes:110,effect:'mint'},
             {label:'Chaque clan garde la sienne',sub:'+40 orbes, moins de tracas',title:'le Prudent',orbes:40}]}];
+// grands travaux : des chantiers que tu peux financer librement, autant de fois que tu veux de nouveaux projets,
+// tant que tu règnes - pour qu'il y ait toujours autre chose à faire qu'attendre la prochaine affaire
+const GREATWORKS=[
+  {id:'statue',n:'Statue de l\'Empereur',cost:140,sub:'Une statue à ton effigie, sur la grande place'},
+  {id:'jardins',n:'Jardins suspendus',cost:160,sub:'Des jardins en terrasses, au sud d\'Astralis'},
+  {id:'fontaine',n:'Grande fontaine impériale',cost:90,sub:'Une fontaine monumentale, au cœur de la capitale'},
+  {id:'observatoire',n:'Observatoire des astres',cost:180,sub:'Une tour pour lire le ciel, à l\'ouest d\'Astralis'},
+  {id:'arc',n:'Arc de triomphe',cost:120,sub:'Un arc célébrant la chute de Malvorn, à l\'est d\'Astralis'},
+  {id:'bannieres',n:'Bannières de victoire',cost:70,sub:'Les bannières des quatre clans, flottant autour de l\'arène'}];
+const WORKPOS={statue:STATUE,jardins:GARDENS,fontaine:FOUNTAIN,observatoire:OBSERVATORY,arc:ARCH,bannieres:ARENA};
+// affaires courantes : une fois les grandes décisions prises, le conseil continue d'apporter
+// de nouvelles affaires, au hasard, tant que tu règnes - le règne ne s'arrête jamais vraiment.
+const RECURRING_AFFAIRS=[
+  {id:'bandits',prompt:'Des bandits rançonnent une caravane marchande, sur la route entre deux cités.',
+   options:[{label:'Envoyer des troupes les déloger',sub:'+orbes de butin récupéré',title:'le Justicier',mul:1.6},
+            {label:'Payer la rançon, plus simple',sub:'-orbes, mais personne ne meurt',title:'le Pragmatique',mul:-0.6}]},
+  {id:'recolte',prompt:'La récolte a été particulièrement bonne cette année, dans les quatre cités.',
+   options:[{label:'Taxer le surplus',sub:'+orbes, le peuple grogne un peu',title:'le Collecteur',mul:1.3},
+            {label:'Laisser le peuple en profiter',sub:'+orbes modestes, mais la confiance grandit',title:'le Généreux',mul:0.6}]},
+  {id:'maladie',prompt:'Une fièvre circule à Pyros. Les guérisseurs réclament des fonds.',
+   options:[{label:'Financer les soins',sub:'-orbes, des vies sauvées',title:'le Guérisseur',mul:-1},
+            {label:'Laisser faire la nature',sub:'+orbes gardés, mais on s\'en souviendra',title:'l\'Indifférent',mul:0.4}]},
+  {id:'ambassade_etr',prompt:'Des marchands venus de très loin, au-delà des mers, demandent audience.',
+   options:[{label:'Les recevoir avec faste',sub:'-orbes, de nouveaux échanges s\'ouvrent',title:'l\'Hôte',mul:-0.8},
+            {label:'Les éconduire poliment',sub:'+orbes gardés',title:'le Prudent',mul:0.4}]},
+  {id:'querelle',prompt:'Deux clans se disputent encore un territoire frontalier.',
+   options:[{label:'Trancher en ta faveur, toi l\'empereur',sub:'+orbes, mais un clan boude',title:'l\'Arbitre',mul:1},
+            {label:'Organiser un tournoi pour les départager',sub:'+orbes, une vraie fête',title:'le Diplomate',mul:0.8}]},
+  {id:'incendie',prompt:'Un incendie a ravagé des entrepôts à Aerith. Il faut reconstruire.',
+   options:[{label:'Reconstruire à tes frais',sub:'-orbes, Aerith t\'en est reconnaissante',title:'le Bâtisseur',mul:-1.2},
+            {label:'Laisser la cité se débrouiller',sub:'+orbes gardés, mais la rancune s\'installe',title:'le Distant',mul:0.3}]},
+  {id:'fete_saison',prompt:'Le conseil propose une nouvelle fête saisonnière, en plus de celle déjà célébrée.',
+   options:[{label:'L\'accorder',sub:'-orbes, le peuple t\'acclame',title:'le Fêtard',mul:-0.7},
+            {label:'Une seule fête par an suffit',sub:'+orbes gardés',title:'le Rigoureux',mul:0.3}]},
+  {id:'expedition',prompt:'Des éclaireurs veulent explorer au-delà des frontières connues du royaume.',
+   options:[{label:'Financer l\'expédition',sub:'-orbes, peut-être une découverte',title:'l\'Explorateur',mul:-0.9},
+            {label:'Le royaume a bien assez de terres',sub:'+orbes gardés',title:'le Casanier',mul:0.4}]},
+  {id:'secheresse',prompt:'Une sécheresse touche les terres de Pyros, cette saison.',
+   options:[{label:'Envoyer de l\'eau depuis Aquaris',sub:'-orbes, les clans se rapprochent',title:'le Solidaire',mul:-0.9},
+            {label:'Laisser Pyros se débrouiller',sub:'+orbes gardés',title:'l\'Indifférent',mul:0.3}]},
+  {id:'piraterie',prompt:'Des pirates rôdent au large des côtes d\'Aquaris.',
+   options:[{label:'Financer une flotte de chasse',sub:'-orbes, la mer est plus sûre',title:'l\'Amiral',mul:-1.1},
+            {label:'Ce n\'est pas ton problème',sub:'+orbes gardés',title:'le Distant',mul:0.4}]},
+  {id:'contrebande',prompt:'Un réseau de contrebande d\'orbes a été découvert à la frontière.',
+   options:[{label:'Le démanteler',sub:'+orbes confisqués',title:'l\'Incorruptible',mul:1.2},
+            {label:'Fermer les yeux, contre un pot-de-vin',sub:'+orbes discrets',title:'le Corruptible',mul:0.9}]},
+  {id:'duel',prompt:'Deux champions de clans rivaux réclament un duel officiel, devant toi.',
+   options:[{label:'L\'autoriser, en grande pompe',sub:'-orbes, le peuple adore',title:'l\'Arbitre',mul:-0.6},
+            {label:'Refuser, trop de sang déjà versé',sub:'+orbes gardés',title:'le Pacifique',mul:0.3}]},
+  {id:'presage',prompt:'Une comète a traversé le ciel cette nuit. Les devins y voient un présage.',
+   options:[{label:'Financer un rituel pour l\'interpréter',sub:'-orbes',title:'le Mystique',mul:-0.5},
+            {label:'Ce n\'est qu\'une pierre qui tombe',sub:'+orbes gardés',title:'le Rationnel',mul:0.3}]},
+  {id:'greve',prompt:'Les artisans d\'Astralis réclament de meilleurs salaires.',
+   options:[{label:'Accorder l\'augmentation',sub:'-orbes, les ateliers tournent mieux',title:'le Social',mul:-1},
+            {label:'Refuser fermement',sub:'+orbes gardés, la grogne monte',title:'l\'Intransigeant',mul:0.5}]},
+  {id:'recensement',prompt:'Il est temps, dit Oryn, de recenser les habitants du royaume.',
+   options:[{label:'Le financer',sub:'-orbes, les impôts seront mieux calculés',title:'l\'Administrateur',mul:-0.5},
+            {label:'Ce n\'est pas urgent',sub:'+orbes gardés',title:'le Négligent',mul:0.3}]},
+  {id:'caravane',prompt:'Une caravane venue de très loin propose des marchandises rares.',
+   options:[{label:'Acheter toute la cargaison',sub:'-orbes, un trésor rare en retour',title:'le Collectionneur',mul:-1.3},
+            {label:'Négocier au plus bas',sub:'+orbes légers',title:'le Marchandeur',mul:0.5}]},
+  {id:'universite',prompt:'Les érudits de l\'académie demandent des fonds pour une expédition savante.',
+   options:[{label:'Les financer',sub:'-orbes, le savoir grandit',title:'le Mécène',mul:-0.8},
+            {label:'Garder l\'or pour le trésor',sub:'+orbes gardés',title:'le Comptable',mul:0.4}]},
+  {id:'alliance',prompt:'Un royaume lointain propose une alliance militaire.',
+   options:[{label:'Accepter, sceller le pacte',sub:'-orbes de cadeaux diplomatiques',title:'l\'Allié',mul:-1},
+            {label:'Décliner poliment, rester neutre',sub:'+orbes gardés',title:'le Neutre',mul:0.4}]}];
 function openCouncil(){
-  S.decisions=S.decisions||[];
+  S.decisions=S.decisions||[];S.works=S.works||{};
   const left=DECISIONS.filter(d=>!S.decisions.includes(d.id));
-  if(!left.length){
-    const rw=Math.round((15+S.lvl)*(1+talentLvl('for')*0.15));S.orbes+=rw;
-    say([{who:'Maître Oryn',text:`Le royaume est stable, ${N()}. Rien d'urgent aujourd'hui — juste les affaires courantes.`},
-         {text:`Les tributs du mois rapportent ${rw} orbes.`}],()=>save());return;}
-  const d=left[0];
-  say([{who:'Maître Oryn',text:d.prompt,choices:d.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
-    S.decisions.push(d.id);S.orbes=Math.max(0,S.orbes+o.orbes);S.title=o.title;
-    if(o.effect){S.council=S.council||{};S.council[o.effect]=true;
-      burst(COUNCIL.x,COUNCIL.y,'#e6c46a',40,280);}
-    showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);}
+  if(left.length){
+    const d=left[0];
+    say([{who:'Maître Oryn',text:d.prompt,choices:d.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
+      S.decisions.push(d.id);S.orbes=Math.max(0,S.orbes+o.orbes);S.title=o.title;
+      if(o.effect){S.council=S.council||{};S.council[o.effect]=true;
+        burst(COUNCIL.x,COUNCIL.y,'#e6c46a',40,280);}
+      showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);
+    return;}
+  // toutes les grandes décisions sont prises : le règne continue pour de vrai, et pour longtemps -
+  // affaires courantes au hasard + grands travaux financés librement, tant que tu es empereur
+  const works=GREATWORKS.filter(w=>!S.works[w.id]);
+  const choices=[{label:'Affaire courante',sub:'Une nouvelle affaire du royaume à régler',fn:()=>openAffair()}];
+  for(const w of works.slice(0,3))choices.push({label:'Chantier : '+w.n,sub:`${w.sub} · -${w.cost} orbes`,fn:()=>buildWork(w)});
+  choices.push({label:'Rien pour l\'instant',sub:'Revenir plus tard',fn:()=>{}});
+  say([{who:'Maître Oryn',text:`Le royaume t'attend, ${N()}${S.title?', '+S.title:''}. Que veux-tu faire ?`,choices}]);}
+function openAffair(){
+  const n=RECURRING_AFFAIRS.length;let idx=Math.floor(rnd(0,n));
+  if(idx===S.lastAffair&&n>1)idx=(idx+1)%n;
+  const a=RECURRING_AFFAIRS[idx];
+  const base=Math.round((16+S.lvl*1.5)*(1+talentLvl('for')*0.15));
+  say([{who:'Maître Oryn',text:a.prompt,choices:a.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
+    S.lastAffair=idx;const amt=Math.round(base*o.mul);S.orbes=Math.max(0,S.orbes+amt);S.title=o.title;
+    S.affairsDone=(S.affairsDone||0)+1;
+    showBanner('Décision prise',`${amt>=0?'+':''}${amt} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);}
+function buildWork(w){
+  if((S.orbes||0)<w.cost){showBanner(w.n,`Pas assez d'orbes (${S.orbes} / ${w.cost})`,2.4);return;}
+  S.orbes-=w.cost;S.works=S.works||{};S.works[w.id]=true;
+  const p=WORKPOS[w.id]||COUNCIL;burst(p.x,p.y,'#e6c46a',44,300);
+  showBanner(w.n+' achevé','-'+w.cost+' orbes',3.2);save();}
 function makeCamps(){S.camps=[];
   for(const k of tourKeys()){const c=cityPx(k),a=Math.atan2(CAP.y-c.y,CAP.x-c.x)+1.1;
     let x=c.x+Math.cos(a)*26*T,y=c.y+Math.sin(a)*26*T;
@@ -1335,8 +1434,9 @@ function questText(){if(!S)return'';
     case 'gods':{const l=godShrineLeft();return 'Scelle un pacte avec les autres dieux : '+l.map(k=>CLANS[k].god.split(',')[0]).join(', ')+'.';}
     case 'end':return 'Malvorn est tombé, les quatre dieux t\'ont béni, et le trône d\'Astralis t\'attend. Suite au prochain chapitre.';
     case 'reign':{const left=DECISIONS.filter(d=>!(S.decisions||[]).includes(d.id)).length;
-      return left?`Tu règnes sur Astralis${S.title?', '+S.title:''}. Le conseil, à l'ouest de la guilde, a ${left} affaire(s) à régler.`
-        :`Tu règnes sur Astralis${S.title?', '+S.title:''}. Le royaume est stable — le conseil t'accueille quand tu veux.`;}
+      if(left)return `Tu règnes sur Astralis${S.title?', '+S.title:''}. Le conseil, à l'ouest de la guilde, a ${left} affaire(s) à régler.`;
+      const w=GREATWORKS.filter(x=>!(S.works||{})[x.id]).length;
+      return `Tu règnes sur Astralis${S.title?', '+S.title:''}. Le conseil a toujours une affaire ou un chantier pour toi`+(w?` (${w} grand(s) travaux possibles)`:'')+'.';}
     case 'free':{const p=L.findIndex((s,i)=>!S.learned[i]);
       return p>=0?`${L[p].n} : ${S.lvl>=L[p].lvl?'va voir '+teachLabel(L[p]):'niveau '+L[p].lvl+' requis'}.`
         :'Tu maîtrises les vingt-six pouvoirs de ton clan. Continue l\'histoire jusqu\'au bout pour affronter Malvorn.';}
@@ -1490,7 +1590,8 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
   return{name,clan,tunic,lvl:1,xp:0,orbes:0,quest:'tuto',guild:null,mount:false,fly:false,sword:false,pact:false,divine:-1,
     learned:l,met:{},disc:{},incant:null,incantKind:null,gq:null,gqDone:0,play:0,
     divines:[],pact2:false,pact2started:false,masterDead:false,valerianDead:false,emperor:false,questBefore:null,camps:null,gods:[],bless:[],
-    decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false},
+    decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false},
+    works:{},lastAffair:-1,affairsDone:0,
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1515,7 +1616,9 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.camps=Array.isArray(d.camps)?d.camps.map(c=>Object.assign({},c,{spawned:false})):null;
   S.gods=Array.isArray(d.gods)?d.gods.slice():[];S.bless=Array.isArray(d.bless)?d.bless.slice():[];
   S.decisions=Array.isArray(d.decisions)?d.decisions.slice():[];S.title=d.title||null;
-  S.council=(d.council&&typeof d.council==='object')?Object.assign({temple:false,academy:false,guard:false,festival:false},d.council):{temple:false,academy:false,guard:false,festival:false};
+  S.council=(d.council&&typeof d.council==='object')?Object.assign({temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false},d.council):{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false};
+  S.works=(d.works&&typeof d.works==='object')?Object.assign({},d.works):{};
+  S.lastAffair=typeof d.lastAffair==='number'?d.lastAffair:-1;S.affairsDone=d.affairsDone||0;
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
@@ -1545,7 +1648,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   quest:stableQuest(),guild:S.guild,mount:S.mount,fly:S.fly,sword:S.sword,pact:S.pact,divine:S.divine,
   divines:S.divines,pact2:S.pact2,pact2started:S.pact2started,masterDead:S.masterDead,valerianDead:S.valerianDead,emperor:S.emperor,
   camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,talents:S.talents,
-  decisions:S.decisions,title:S.title,council:S.council,
+  decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -2027,6 +2130,87 @@ function drawFestival(){const x=CAP.x,y=CAP.y;
   if(Math.random()<.35){const a=rnd(0,TAU),cols=['#ff6a7a','#7fdcff','#ffe04a','#9fd98a'];
     fx.push({k:'p',x:x+Math.cos(a)*rnd(10,50),y:y-60+rnd(0,10),vx:rnd(-20,20),vy:rnd(20,50),
       col:cols[Math.floor(rnd(0,4))],t:0,life:rnd(.8,1.4),s:rnd(2,4)});}}
+// quatre tours de garde sur les remparts (décision "muraille")
+function drawWallTowers(){for(const t of WALLTOWERS){
+  softShadow(t.x,t.y+16,22,8,.3);
+  ctx.fillStyle='#8a8276';ctx.fillRect(t.x-14,t.y-50,28,54);
+  ctx.fillStyle=shade('#8a8276',0.15);ctx.fillRect(t.x-14,t.y-50,6,54);
+  ctx.fillStyle='#6f6a5e';poly([[t.x-18,t.y-50],[t.x,t.y-70],[t.x+18,t.y-50]]);
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e6c46a',.22+Math.sin(time*1.6+t.x)*.08);circ(t.x,t.y-58,4);
+  ctx.globalCompositeOperation='source-over';}}
+// le grand marché commun (décision "commerce")
+function drawMarket(){const x=MARKET.x,y=MARKET.y;
+  softShadow(x,y+22,78,16,.26);
+  for(let k=0;k<5;k++){const sx=x-72+k*36,cols=['#e05a4a','#4aa0e0','#e0c04a','#6aa86a','#c46ae0'];
+    ctx.fillStyle=cols[k%cols.length];ctx.beginPath();ctx.moveTo(sx-16,y-6);ctx.lineTo(sx,y-30);ctx.lineTo(sx+16,y-6);ctx.fill();
+    ctx.fillStyle='#8a7a5e';ctx.fillRect(sx-14,y-6,28,16);
+    ctx.fillStyle=shade(cols[k%cols.length],0.25);ctx.beginPath();ctx.moveTo(sx-16,y-6);ctx.lineTo(sx,y-18);ctx.lineTo(sx+16,y-6);ctx.fill();}
+  bigLabel(x,y-48,'Marché commun','#e6c46a',18);}
+// la grande bibliothèque (décision "bibliothèque")
+function drawLibrary(){const x=LIBRARY.x,y=LIBRARY.y;
+  softShadow(x,y+26,54,13,.28);
+  ctx.fillStyle='#7a6a52';ctx.fillRect(x-50,y-50,100,54);
+  ctx.fillStyle=shade('#7a6a52',0.2);ctx.fillRect(x-50,y-50,100,6);
+  for(let k=0;k<5;k++){ctx.fillStyle='#352a1e';ctx.fillRect(x-42+k*18,y-38,4,30);}
+  ctx.fillStyle='#4a3d2c';poly([[x-54,y-50],[x,y-80],[x+54,y-50]]);
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#9fd9ff',.18+Math.sin(time*1.8)*.06);circ(x,y-62,10);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-92,'Grande bibliothèque','#9fd9ff',18);}
+// l'hôtel de la monnaie impériale (décision "monnaie")
+function drawMint(){const x=MINT.x,y=MINT.y;
+  softShadow(x,y+24,52,12,.28);
+  ctx.fillStyle='#6a5a3a';ctx.fillRect(x-46,y-42,92,46);
+  ctx.fillStyle=shade('#6a5a3a',0.22);ctx.fillRect(x-46,y-42,92,6);
+  ctx.fillStyle='#e6c46a';poly([[x-50,y-42],[x,y-70],[x+50,y-42]]);
+  for(let k=0;k<3;k++){ctx.globalCompositeOperation='lighter';
+    ctx.fillStyle=rgba('#ffe04a',.3+Math.sin(time*2.4+k)*.1);circ(x-20+k*20,y-14,6);ctx.globalCompositeOperation='source-over';}
+  bigLabel(x,y-80,'Hôtel de la Monnaie','#e6c46a',18);}
+/* ---------- grands travaux : chantiers libres financés depuis le conseil ---------- */
+function drawStatue(){const x=STATUE.x,y=STATUE.y;
+  softShadow(x,y+22,30,10,.3);
+  ctx.fillStyle='#8a8276';ctx.fillRect(x-22,y-6,44,16);
+  ctx.fillStyle=shade('#c9a64a',0.1);ctx.fillRect(x-10,y-56,20,52);
+  const C=S&&S.clan?CLANS[S.clan]:{col:'#e6c46a'};
+  drawPerson(x,y-66,{s:1.3,face:Math.PI/2,body:shade(C.col,-0.2),trim:'#e6c46a',skin:'#e3bd98',hair:'#2a2420',crown:true,robe:true});
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e6c46a',.16+Math.sin(time*1.3)*.05);circ(x,y-60,34);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-108,'Statue de l\'Empereur','#e6c46a',18);}
+function drawGardens(){const x=GARDENS.x,y=GARDENS.y;
+  softShadow(x,y+18,86,20,.22);
+  ctx.fillStyle=shade('#5e7e55',0.1);ctx.beginPath();ctx.ellipse(x,y,84,26,0,0,TAU);ctx.fill();
+  for(let k=0;k<10;k++){const a=k/10*TAU,px=x+Math.cos(a)*rnd(40,74),py=y+Math.sin(a)*rnd(10,20);
+    ctx.fillStyle=['#ff6a7a','#ffe04a','#9fd98a','#7fdcff'][k%4];circ(px,py-6,4);
+    ctx.fillStyle='#3f5a3a';ctx.fillRect(px-1,py,2,8);}
+  bigLabel(x,y-36,'Jardins suspendus','#9fd98a',18);}
+function drawFountain(){const x=FOUNTAIN.x,y=FOUNTAIN.y;
+  softShadow(x,y+16,44,14,.28);
+  ctx.fillStyle='#b9bfe0';ctx.beginPath();ctx.ellipse(x,y,42,16,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#8a90bf';ctx.beginPath();ctx.ellipse(x,y,42,16,0,0,TAU);ctx.lineWidth=3;ctx.strokeStyle='#6c72a0';ctx.stroke();
+  ctx.fillStyle='#d8dcf2';circ(x,y-10,14);
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#cfe9ff',.3);circ(x,y-10,20);ctx.globalCompositeOperation='source-over';
+  if(Math.random()<.5){const a=rnd(0,TAU);fx.push({k:'p',x:x+Math.cos(a)*6,y:y-18,vx:Math.cos(a)*14,vy:-rnd(40,70),
+    col:'#cfe9ff',t:0,life:rnd(.5,.8),s:2});}
+  bigLabel(x,y-42,'Fontaine impériale','#cfe9ff',18);}
+function drawObservatory(){const x=OBSERVATORY.x,y=OBSERVATORY.y;
+  softShadow(x,y+30,30,12,.3);
+  ctx.fillStyle='#6a6456';ctx.fillRect(x-20,y-70,40,74);
+  ctx.fillStyle=shade('#6a6456',0.15);ctx.fillRect(x-20,y-70,8,74);
+  ctx.fillStyle='#3fb2ff';ctx.beginPath();ctx.arc(x,y-70,22,Math.PI,0);ctx.fill();
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#7fdcff',.22+Math.sin(time*1.1)*.08);circ(x,y-70,30);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-112,'Observatoire des astres','#7fdcff',18);}
+function drawArch(){const x=ARCH.x,y=ARCH.y;
+  softShadow(x,y+20,50,12,.3);
+  ctx.fillStyle='#d8c99a';ctx.fillRect(x-48,y-66,16,66);ctx.fillRect(x+32,y-66,16,66);
+  ctx.beginPath();ctx.moveTo(x-48,y-66);ctx.quadraticCurveTo(x,y-104,x+48,y-66);ctx.lineTo(x+32,y-66);
+  ctx.quadraticCurveTo(x,y-86,x-32,y-66);ctx.closePath();ctx.fillStyle='#d8c99a';ctx.fill();
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e6c46a',.18+Math.sin(time*1.4)*.06);circ(x,y-70,24);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-116,'Arc de triomphe','#e6c46a',18);}
+function drawBanners(){for(let k=0;k<4;k++){const a=k/4*TAU+Math.PI/4,r=ARENA.r+20,
+    x=ARENA.x+Math.cos(a)*r,y=ARENA.y+Math.sin(a)*r,col=CLANS[KEYS4[k]].col;
+    ctx.fillStyle='#8a8276';ctx.fillRect(x-2,y-46,4,46);
+    ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x+2,y-44);ctx.lineTo(x+22,y-38+Math.sin(time*2+k)*3);ctx.lineTo(x+2,y-30);ctx.fill();}}
 function drawPlayer(){const C=CL(),blink=P.inv>0&&P.hp>0&&Math.floor(time*20)%2===0&&P.inv<1.8,oy=P.flying?-30:P.mounted?-12:0;
   if(P.flying)drawFlyer(P.x,P.y,P.face,S.clan);
   else if(P.mounted)drawMount(P.x,P.y,P.face,S.clan,P.walk);
@@ -2233,7 +2417,17 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
     if(S.council&&S.council.temple)drawTemple();
     if(S.council&&S.council.academy)drawAcademy();
     if(S.council&&S.council.guard)drawGuards();
-    if(S.council&&S.council.festival)drawFestival();}
+    if(S.council&&S.council.festival)drawFestival();
+    if(S.council&&S.council.wall)drawWallTowers();
+    if(S.council&&S.council.market)drawMarket();
+    if(S.council&&S.council.library)drawLibrary();
+    if(S.council&&S.council.mint)drawMint();
+    if(S.works&&S.works.statue)drawStatue();
+    if(S.works&&S.works.jardins)drawGardens();
+    if(S.works&&S.works.fontaine)drawFountain();
+    if(S.works&&S.works.observatoire)drawObservatory();
+    if(S.works&&S.works.arc)drawArch();
+    if(S.works&&S.works.bannieres)drawBanners();}
   for(const v of VILLAGES){const px=v.x*T,py=v.y*T;
     if(px+400<cam.x||px-400>cam.x+vw||py+400<cam.y||py-400>cam.y+vh)continue;
     bigLabel(px,py-(VILR+1)*T,v.name,shade(CLANS[v.clan].col,-0.1),20);
@@ -2685,7 +2879,8 @@ buildTitle();
 // console de test : ouvrir la page avec ?dbg à la fin de l'adresse
 if(location.search.indexOf('dbg')>=0)window.E={
   s:()=>S,p:()=>P,lvl:n=>{while(S.lvl<n)levelUp();},all:()=>{S.learned.fill(true);S.sword=true;S.mount=true;},
-  go:(x,y)=>{P.x=x;P.y=y;},tp:k=>{const c=k==='cap'?CAP:cityPx(k);P.x=c.x;P.y=c.y+60;},
+  go:(x,y)=>{P.x=x;P.y=y;cam.x=x-VW/ZOOM/2;cam.y=y-VH/ZOOM/2;},
+  tp:k=>{const c=k==='cap'?CAP:cityPx(k);P.x=c.x;P.y=c.y+60;cam.x=P.x-VW/ZOOM/2;cam.y=P.y-VH/ZOOM/2;},
   q:k=>{S.quest=k;},pact:()=>{S.pact=true;S.divine=0;S.divines=[0];},
   pact2:()=>{S.pact2=true;S.divines=[0,1,2,3,4];},
   ult:()=>{const i=SPELLS[S.clan].findIndex(s=>s.ic==='ult');if(i>=0)learn(i);},
@@ -2700,7 +2895,8 @@ if(location.search.indexOf('dbg')>=0)window.E={
   txt:()=>questText(),orbes:n=>{S.orbes=n;},fly:()=>{S.fly=true;},buy:k=>buyTalent(k),
   tal:()=>openTalents(),talClose:()=>closeTalents(),toggleMount:()=>toggleMount(),load:d=>loadGame(d),snap:()=>snapshot(),
   cast:i=>{P.cds[i]=0;cast(i);},icons:()=>SPELLS[S.clan].map(s=>s.ic),fxLen:()=>fx.length,
-  council:()=>openCouncil(),nsp:()=>NSP};
+  council:()=>openCouncil(),nsp:()=>NSP,
+  pts:()=>({WALLTOWERS,MARKET,LIBRARY,MINT,STATUE,GARDENS,FOUNTAIN,OBSERVATORY,ARCH,COUNCIL,TEMPLE,ACADEMY})};
 })();
 </script>
 </body>
