@@ -876,12 +876,11 @@ function learn(i){S.learned[i]=true;const sp=SPELLS[S.clan][i];
   if(!S.bar.includes(i)&&S.bar.length<DPER){S.bar.push(i);
     showBanner(sp.n+' appris !','Épinglé dans ta barre · touche '+((S.bar.indexOf(i)+1)%10),3.4);}
   else showBanner(sp.n+' appris !','Ouvre le grimoire (touche B) pour l\'épingler dans ta barre',3.4);
-  ring(P.x,P.y,10,120,CL().col,.7,6);burst(P.x,P.y,CL().col,30,240);save();
-  // apprendre l'ultime du clan déclenche le second acte du pacte
-  if(sp.ic==='ult'&&S.pact&&!S.pact2&&!S.pact2started){S.pact2started=true;
-    setTimeout(()=>{if(dlgOpen)return;S.questBefore=S.quest;S.quest='_';
-      say(TXT.attack2Call(),()=>{S.quest='attack2';S.awave=0;S.awaveOn=false;S.awaveDelay=2;
-        showBanner(CL().city+' est attaquée !','Rentre défendre ta cité');save();});},900);}}
+  ring(P.x,P.y,10,120,CL().col,.7,6);burst(P.x,P.y,CL().col,30,240);save();}
+function allLearned(){for(let i=0;i<NSP;i++)if(!S.learned[i])return false;return true;}
+function triggerAttack2(){S.pact2started=true;S.quest='_';
+  say(TXT.attack2Call(),()=>{S.quest='attack2';S.awave=0;S.awaveOn=false;S.awaveDelay=2;
+    showBanner(CL().city+' est attaquée !','Rentre défendre ta cité');save();});}
 const MASTER_INTRO={
   elec:()=>'Un étranger sous notre dôme. Voltara n\'aime pas les visiteurs… mais Valerian t\'envoie, alors je t\'écoute. Sais-tu que trois des nôtres ont disparu ce mois-ci ?',
   fire:()=>'Tu viens de loin, et tu respires encore. C\'est déjà quelque chose. Pyros a perdu deux forges dans un raid, le mois dernier. Personne ne sait qui.',
@@ -1142,6 +1141,7 @@ function updQuest(dt){
           say(TXT.victory(),()=>{S.quest='pactMaster';showBanner('Nouvelle quête','Retourne voir le maître de '+CL().city);save();});}
         else{S.waveDelay=4;showBanner('Vague '+(S.wave+1)+' / 4',S.wave===3?'Un lieutenant de Malvorn approche':'Astralis tient encore. Soigne-toi !');}}
       break;
+    case 'trainUlt':if(allLearned()&&!S.pact2&&!S.pact2started)triggerAttack2();break;
     case 'hideout':{
       if(!S.camps)makeCamps();
       if(S.camps.every(c=>c.cleared)){S.quest='_';say(TXT.fortFound(),()=>{S.quest='fortress';showBanner('La forteresse est localisée','Nord-ouest du royaume, au-delà des montagnes');save();});break;}
@@ -1327,7 +1327,7 @@ const TXT={
     {who:'Maître Oryn',text:`Malvorn est tombé, Valerian est vengé, et le trône tient. Il ne reste qu'une question : que fait-on d'un royaume qui n'a plus d'ennemi ?`},
     {text:'Fin du troisième chapitre d\'Élémentia. À suivre : le règne, la cité où les quatre clans vivront ensemble, et ce qui dormait sous Astralis depuis bien plus longtemps que Malvorn.'}],
   attack2Call:()=>[
-    {text:`Tu viens à peine de maîtriser ${SPELLS[S.clan].find(s=>s.ic==='ult').n} que la pierre de la tour se met à vibrer. Un garde entre en courant.`},
+    {text:`Tu viens à peine de maîtriser le dernier des pouvoirs de ton clan que la pierre de la tour se met à vibrer. Un garde entre en courant.`},
     {who:'Un garde',text:`Un message de ${CL().city} ! Les Oubliés sont entrés sous le dôme ! Ils sont déjà dans les rues !`},
     {who:'Valerian',text:'Sous le dôme… Ce n\'est pas une razzia, c\'est une exécution. Ils savent qui ils viennent chercher.'},
     {who:'Valerian',text:'Cours. Prends le portail. Et ne me demande pas la permission.'}],
@@ -1395,7 +1395,7 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
-  if(S.quest==='attack'||S.quest==='attack2'||S.quest==='fortress'||S.quest==='malvornFight'||S.quest==='_')
+  if(S.quest==='attack'||S.quest==='attack2'||S.quest==='fortress'||S.quest==='malvornFight'||S.quest==='_'||S.quest==='free')
     S.quest=S.emperor?'gods':S.pact2?(S.camps&&S.camps.every(c=>c.cleared)?'fortress':'hideout')
       :S.masterDead?'pact2':S.pact?'trainUlt':S.lvl>=10?'recall':S.lvl>=6?'tour':'grow6';
   const c=cityPx(S.clan);initPlayer(d.x||c.x,d.y||c.y);if(blocked(P.x,P.y,P.r)){P.x=c.x;P.y=c.y;}
@@ -2441,7 +2441,7 @@ if(location.search.indexOf('dbg')>=0)window.E={
   learn:i=>learn(i),raw:()=>enemies,mk:(kind,x,y,extra)=>mkEnemy(kind,x,y,extra),inSafe:(x,y)=>inSafe(x,y),
   xpAt:(lvl,amt)=>{S.lvl=lvl;S.xp=0;gainXp(amt);return S.xp;},pinDivine:k=>pinDivine(k),
   txt:()=>questText(),orbes:n=>{S.orbes=n;},fly:()=>{S.fly=true;},buy:k=>buyTalent(k),
-  tal:()=>openTalents(),talClose:()=>closeTalents(),toggleMount:()=>toggleMount()};
+  tal:()=>openTalents(),talClose:()=>closeTalents(),toggleMount:()=>toggleMount(),load:d=>loadGame(d),snap:()=>snapshot()};
 })();
 </script>
 </body>
