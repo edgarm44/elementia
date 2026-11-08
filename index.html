@@ -372,6 +372,10 @@ const SHRINE={};for(const k in CLANS){const d=CLANS[k].dir;
 const ASH={x:CX,y:CY+58,r:13};
 // la cachette de Malvorn, enfouie au cœur des Cendres
 const FORT={x:(ASH.x+.5)*T,y:(ASH.y+.5)*T,r:12};
+// pour que les 4 dernières décisions "abstraites" du conseil (impôts, frontières, clans, Malvorn)
+// aient elles aussi un vrai effet visible dans le monde
+const FRONTIER=worksPt(270,CAPR+10);
+const FORTMARK={x:FORT.x,y:FORT.y-10*T};
 
 function biomeOf(x,y){const dx=x-CX,dy=y-CY;if(dx*dx+dy*dy<CAPR*CAPR+500)return 0;
   const adx=x-ASH.x,ady=y-ASH.y;if(adx*adx+ady*ady<ASH.r*ASH.r+30)return 5;
@@ -1159,20 +1163,21 @@ const BLESS=[{n:'Éclat de Zalvir',d:'tes sorts frappent un quart plus fort'},
 /* ---------- acte 7 : le règne - gouverner Astralis une fois Malvorn tombé ---------- */
 const DECISIONS=[
   {id:'impots',prompt:'Le trésor d\'Astralis est maigre après la guerre. Comment le remplir ?',
-   options:[{label:'Taxer les quatre cités',sub:'+180 orbes, mais le peuple grogne',title:'le Collecteur',orbes:180},
+   options:[{label:'Taxer les quatre cités',sub:'+180 orbes, et toutes tes affaires futures rapportent +20% d\'orbes',title:'le Collecteur',orbes:180,
+             apply:()=>{S.taxMul=(S.taxMul||1)*1.2;}},
             {label:'Vider les coffres de Malvorn',sub:'+90 orbes, plus lent mais populaire',title:'le Juste',orbes:90}]},
   {id:'frontieres',prompt:'Des Oubliés errent encore aux frontières, sans chef. Que fait-on d\'eux ?',
-   options:[{label:'Les chasser jusqu\'au dernier',sub:'+70 orbes de butin',title:'le Sans-Pitié',orbes:70},
-            {label:'Leur offrir une terre, au nord',sub:'+30 orbes, la paix a un prix',title:'le Clément',orbes:30}]},
+   options:[{label:'Les chasser jusqu\'au dernier',sub:'Un poste frontière s\'élève vraiment au nord d\'Astralis · +70 orbes',title:'le Sans-Pitié',orbes:70,effect:'outpost'},
+            {label:'Leur offrir une terre, au nord',sub:'Un vrai refuge des Oubliés s\'installe au nord d\'Astralis · +30 orbes',title:'le Clément',orbes:30,effect:'refuge'}]},
   {id:'succession',prompt:'Maître Oryn te demande qui formera les prochains magiciens, maintenant que ton propre maître n\'est plus.',
    options:[{label:'Rouvrir son académie',sub:'Une vraie académie s\'élève à l\'ouest d\'Astralis · -60 orbes',title:'le Bâtisseur',orbes:-60,effect:'academy'},
             {label:'Enseigner toi-même, parfois',sub:'+40 orbes, moins de temps pour toi',title:'le Maître',orbes:40}]},
   {id:'quatreclans',prompt:'Les quatre clans te demandent chacun plus d\'autonomie, maintenant que tu portes la couronne.',
-   options:[{label:'Un seul royaume, une seule loi',sub:'+100 orbes de tributs unifiés',title:'l\'Unificateur',orbes:100},
-            {label:'Laisser chaque clan se gouverner',sub:'+50 orbes, la confiance plutôt que l\'or',title:'le Fédérateur',orbes:50}]},
+   options:[{label:'Un seul royaume, une seule loi',sub:'Des bannières impériales flottent vraiment sur les quatre cités · +100 orbes',title:'l\'Unificateur',orbes:100,effect:'unified'},
+            {label:'Laisser chaque clan se gouverner',sub:'Chaque cité garde vraiment ses propres couleurs · +50 orbes',title:'le Fédérateur',orbes:50,effect:'autonomy'}]},
   {id:'malvornLegs',prompt:'La forteresse de Malvorn tient encore debout, dans les Cendres. Qu\'en fait-on ?',
-   options:[{label:'La raser, et semer du sel',sub:'+50 orbes de métal fondu',title:'celui-qui-efface',orbes:50},
-            {label:'La garder comme prison',sub:'+80 orbes de rançons',title:'le Geôlier',orbes:80}]},
+   options:[{label:'La raser, et semer du sel',sub:'La forteresse est vraiment rasée, un monument la remplace · +50 orbes',title:'celui-qui-efface',orbes:50,effect:'fortRazed'},
+            {label:'La garder comme prison',sub:'Une vraie prison impériale occupe les ruines · +80 orbes',title:'le Geôlier',orbes:80,effect:'fortPrison'}]},
   {id:'temple',prompt:'Les prêtres veulent un temple commun aux quatre dieux, au cœur d\'Astralis.',
    options:[{label:'Financer sa construction',sub:'Un temple s\'élève vraiment à l\'est d\'Astralis · -40 orbes',title:'le Pieux',orbes:-40,effect:'temple'},
             {label:'Refuser : un dieu, un clan',sub:'+20 orbes gardés',title:'le Traditionnel',orbes:20}]},
@@ -1267,9 +1272,10 @@ function openCouncil(){
   if(left.length){
     const d=left[0];
     say([{who:'Maître Oryn',text:d.prompt,choices:d.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
-      S.decisions.push(d.id);S.orbes=Math.max(0,S.orbes+o.orbes);S.title=o.title;
+      S.decisions.push(d.id);S.orbes=Math.max(0,S.orbes+Math.round(o.orbes*(o.orbes>0?(S.taxMul||1):1)));S.title=o.title;
       if(o.effect){S.council=S.council||{};S.council[o.effect]=true;
         burst(COUNCIL.x,COUNCIL.y,'#e6c46a',40,280);}
+      if(o.apply)o.apply();
       showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);
     return;}
   // toutes les grandes décisions sont prises : le règne continue pour de vrai, et pour longtemps -
@@ -1285,7 +1291,7 @@ function openAffair(){
   const a=RECURRING_AFFAIRS[idx];
   const base=Math.round((16+S.lvl*1.5)*(1+talentLvl('for')*0.15));
   say([{who:'Maître Oryn',text:a.prompt,choices:a.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
-    S.lastAffair=idx;const amt=Math.round(base*o.mul);S.orbes=Math.max(0,S.orbes+amt);S.title=o.title;
+    S.lastAffair=idx;const amt=Math.round(base*o.mul*(o.mul>0?(S.taxMul||1):1));S.orbes=Math.max(0,S.orbes+amt);S.title=o.title;
     S.affairsDone=(S.affairsDone||0)+1;
     showBanner('Décision prise',`${amt>=0?'+':''}${amt} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);}
 function buildWork(w){
@@ -1590,8 +1596,9 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
   return{name,clan,tunic,lvl:1,xp:0,orbes:0,quest:'tuto',guild:null,mount:false,fly:false,sword:false,pact:false,divine:-1,
     learned:l,met:{},disc:{},incant:null,incantKind:null,gq:null,gqDone:0,play:0,
     divines:[],pact2:false,pact2started:false,masterDead:false,valerianDead:false,emperor:false,questBefore:null,camps:null,gods:[],bless:[],
-    decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false},
-    works:{},lastAffair:-1,affairsDone:0,
+    decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false,
+      outpost:false,refuge:false,unified:false,autonomy:false,fortRazed:false,fortPrison:false},
+    works:{},lastAffair:-1,affairsDone:0,taxMul:1,
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1616,9 +1623,12 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.camps=Array.isArray(d.camps)?d.camps.map(c=>Object.assign({},c,{spawned:false})):null;
   S.gods=Array.isArray(d.gods)?d.gods.slice():[];S.bless=Array.isArray(d.bless)?d.bless.slice():[];
   S.decisions=Array.isArray(d.decisions)?d.decisions.slice():[];S.title=d.title||null;
-  S.council=(d.council&&typeof d.council==='object')?Object.assign({temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false},d.council):{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false};
+  const COUNCIL_DEFAULTS={temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false,
+    outpost:false,refuge:false,unified:false,autonomy:false,fortRazed:false,fortPrison:false};
+  S.council=(d.council&&typeof d.council==='object')?Object.assign({},COUNCIL_DEFAULTS,d.council):Object.assign({},COUNCIL_DEFAULTS);
   S.works=(d.works&&typeof d.works==='object')?Object.assign({},d.works):{};
   S.lastAffair=typeof d.lastAffair==='number'?d.lastAffair:-1;S.affairsDone=d.affairsDone||0;
+  S.taxMul=typeof d.taxMul==='number'?d.taxMul:1;
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
@@ -1648,7 +1658,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   quest:stableQuest(),guild:S.guild,mount:S.mount,fly:S.fly,sword:S.sword,pact:S.pact,divine:S.divine,
   divines:S.divines,pact2:S.pact2,pact2started:S.pact2started,masterDead:S.masterDead,valerianDead:S.valerianDead,emperor:S.emperor,
   camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,talents:S.talents,
-  decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,
+  decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,taxMul:S.taxMul,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -2211,6 +2221,39 @@ function drawBanners(){for(let k=0;k<4;k++){const a=k/4*TAU+Math.PI/4,r=ARENA.r+
     x=ARENA.x+Math.cos(a)*r,y=ARENA.y+Math.sin(a)*r,col=CLANS[KEYS4[k]].col;
     ctx.fillStyle='#8a8276';ctx.fillRect(x-2,y-46,4,46);
     ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x+2,y-44);ctx.lineTo(x+22,y-38+Math.sin(time*2+k)*3);ctx.lineTo(x+2,y-30);ctx.fill();}}
+/* ---------- effet réel des 4 dernières décisions "abstraites" (impôts, frontières, clans, Malvorn) ---------- */
+function drawOutpost(){const x=FRONTIER.x,y=FRONTIER.y;
+  softShadow(x,y+16,20,8,.3);
+  ctx.fillStyle='#8a8276';ctx.fillRect(x-12,y-44,24,48);
+  ctx.fillStyle='#6f6a5e';poly([[x-16,y-44],[x,y-62],[x+16,y-44]]);
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e05a4a',.22+Math.sin(time*2)*.08);circ(x,y-52,5);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-78,'Poste frontière','#e6c46a',16);}
+function drawRefuge(){const x=FRONTIER.x,y=FRONTIER.y;
+  softShadow(x,y+16,46,12,.26);
+  for(let k=0;k<3;k++){const sx=x-30+k*30;
+    ctx.fillStyle='#6a6050';poly([[sx-14,y],[sx,y-26],[sx+14,y]]);
+    drawPerson(sx,y+10,{s:.72,face:(k%2?-1:1)*Math.PI/2,body:'#8a7d68',trim:'#5a4f40',skin:'#d9b48a',hair:'#3a2f22',robe:true});}
+  bigLabel(x,y-46,'Refuge des Oubliés','#9fd98a',16);}
+function drawClanBanners(){const unified=S.council&&S.council.unified;
+  for(const k in CLANS){const c=CITY[k],x=c.x*T,y=c.y*T-70,col=unified?'#e6c46a':CLANS[k].col;
+    ctx.fillStyle='#8a8276';ctx.fillRect(x-2,y-40,4,40);
+    ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x+2,y-38);ctx.lineTo(x+20,y-32+Math.sin(time*2+x)*3);ctx.lineTo(x+2,y-24);ctx.fill();}}
+function drawFortRazed(){const x=FORTMARK.x,y=FORTMARK.y;
+  softShadow(x,y+10,56,16,.28);
+  for(let k=0;k<6;k++){const rx=x-40+k*16+rnd(-4,4),ry=y-4+rnd(-6,6);
+    ctx.fillStyle=shade('#6a6456',rnd(-.15,.1));ctx.fillRect(rx,ry,14,10);}
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#ffffff',.1+Math.sin(time*1.2)*.04);circ(x,y-4,40);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-40,'Ici tomba la forteresse de Malvorn','#c9c2b0',16);}
+function drawFortPrison(){const x=FORTMARK.x,y=FORTMARK.y;
+  softShadow(x,y+22,50,14,.3);
+  ctx.fillStyle='#4a443a';ctx.fillRect(x-44,y-40,88,44);
+  for(let k=0;k<6;k++){ctx.fillStyle='#1c1812';ctx.fillRect(x-36+k*13,y-34,4,32);}
+  ctx.fillStyle='#3a352c';poly([[x-48,y-40],[x,y-62],[x+48,y-40]]);
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e05a4a',.14+Math.sin(time*1.6)*.05);circ(x,y-50,8);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-76,'Prison impériale',"#e6c46a",16);}
 function drawPlayer(){const C=CL(),blink=P.inv>0&&P.hp>0&&Math.floor(time*20)%2===0&&P.inv<1.8,oy=P.flying?-30:P.mounted?-12:0;
   if(P.flying)drawFlyer(P.x,P.y,P.face,S.clan);
   else if(P.mounted)drawMount(P.x,P.y,P.face,S.clan,P.walk);
@@ -2427,7 +2470,12 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
     if(S.works&&S.works.fontaine)drawFountain();
     if(S.works&&S.works.observatoire)drawObservatory();
     if(S.works&&S.works.arc)drawArch();
-    if(S.works&&S.works.bannieres)drawBanners();}
+    if(S.works&&S.works.bannieres)drawBanners();
+    if(S.council&&S.council.outpost)drawOutpost();
+    if(S.council&&S.council.refuge)drawRefuge();
+    if(S.council&&(S.council.unified||S.council.autonomy))drawClanBanners();
+    if(S.council&&S.council.fortRazed)drawFortRazed();
+    if(S.council&&S.council.fortPrison)drawFortPrison();}
   for(const v of VILLAGES){const px=v.x*T,py=v.y*T;
     if(px+400<cam.x||px-400>cam.x+vw||py+400<cam.y||py-400>cam.y+vh)continue;
     bigLabel(px,py-(VILR+1)*T,v.name,shade(CLANS[v.clan].col,-0.1),20);
