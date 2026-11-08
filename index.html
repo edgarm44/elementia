@@ -376,6 +376,9 @@ const FORT={x:(ASH.x+.5)*T,y:(ASH.y+.5)*T,r:12};
 // aient elles aussi un vrai effet visible dans le monde
 const FRONTIER=worksPt(270,CAPR+10);
 const FORTMARK={x:FORT.x,y:FORT.y-10*T};
+// deux grands travaux supplémentaires
+const PORT=worksPt(11.25,27);
+const NECROPOLE=worksPt(191.25,27);
 
 function biomeOf(x,y){const dx=x-CX,dy=y-CY;if(dx*dx+dy*dy<CAPR*CAPR+500)return 0;
   const adx=x-ASH.x,ady=y-ASH.y;if(adx*adx+ady*ady<ASH.r*ASH.r+30)return 5;
@@ -1207,8 +1210,38 @@ const GREATWORKS=[
   {id:'fontaine',n:'Grande fontaine impériale',cost:90,sub:'Une fontaine monumentale, au cœur de la capitale'},
   {id:'observatoire',n:'Observatoire des astres',cost:180,sub:'Une tour pour lire le ciel, à l\'ouest d\'Astralis'},
   {id:'arc',n:'Arc de triomphe',cost:120,sub:'Un arc célébrant la chute de Malvorn, à l\'est d\'Astralis'},
-  {id:'bannieres',n:'Bannières de victoire',cost:70,sub:'Les bannières des quatre clans, flottant autour de l\'arène'}];
-const WORKPOS={statue:STATUE,jardins:GARDENS,fontaine:FOUNTAIN,observatoire:OBSERVATORY,arc:ARCH,bannieres:ARENA};
+  {id:'bannieres',n:'Bannières de victoire',cost:70,sub:'Les bannières des quatre clans, flottant autour de l\'arène'},
+  {id:'port',n:'Port impérial',cost:150,sub:'Un quai et des navires, pour commercer avec le large'},
+  {id:'necropole',n:'Nécropole impériale',cost:130,sub:'Un lieu pour honorer les morts de la guerre contre Malvorn'}];
+const WORKPOS={statue:STATUE,jardins:GARDENS,fontaine:FOUNTAIN,observatoire:OBSERVATORY,arc:ARCH,bannieres:ARENA,port:PORT,necropole:NECROPOLE};
+// grandes crises : des affaires bien plus rares et bien plus lourdes de conséquences que les affaires courantes -
+// le choix "ferme" fait vraiment apparaître des troupes ennemies à combattre, pour un vrai gros butin
+function spawnCrisisCamp(x,y,mix){let gi=0;
+  for(const type in mix)for(let k=0;k<mix[type];k++){const a=(gi++)*(TAU/7)+rnd(-.2,.2),d=rnd(40,110);
+    const sx=x+Math.cos(a)*d,sy=y+Math.sin(a)*d;
+    mkEnemy(type,blocked(sx,sy,18)?x:sx,blocked(sx,sy,18)?y:sy,{crisis:true});}
+  showBanner('Troupes en approche !','Des ennemis sont apparus non loin - fonce les affronter pour un gros butin',3.6);}
+const CRISES=[
+  {id:'rebellion',prompt:'Une rébellion éclate à Pyros, menée par un noble mécontent de ton règne.',
+   options:[{label:'Envoyer la garde impériale la mater',sub:'Des troupes rebelles apparaissent près de Pyros, à combattre pour un gros butin',title:'le Répressif',mul:2.4,
+             apply:()=>spawnCrisisCamp(CITY.fire.x*T,CITY.fire.y*T+120,{knight:2,brute:1,hound:2})},
+            {label:'Négocier, céder un peu de pouvoir',sub:'-orbes, mais le sang ne coule pas',title:'le Conciliant',mul:-1.8}]},
+  {id:'guerre_clan',prompt:'Un seigneur de guerre voisin menace d\'envahir les terres d\'Aquaris.',
+   options:[{label:'Masser l\'armée à la frontière',sub:'Une troupe d\'invasion apparaît près d\'Aquaris, à repousser pour un gros butin',title:'le Défenseur',mul:2.6,
+             apply:()=>spawnCrisisCamp(CITY.water.x*T,CITY.water.y*T+120,{knight:3,brute:2,mage:2})},
+            {label:'Payer un lourd tribut pour la paix',sub:'-orbes, mais pas de guerre',title:'le Pacificateur',mul:-2.2}]},
+  {id:'complot',prompt:'Des conjurés complotent ta chute, ici même, dans les couloirs d\'Astralis.',
+   options:[{label:'Les faire arrêter sur-le-champ',sub:'Les conjurés et leurs hommes de main surgissent près du conseil - à combattre',title:'l\'Impitoyable',mul:2,
+             apply:()=>spawnCrisisCamp(COUNCIL.x,COUNCIL.y+160,{mage:2,knight:2})},
+            {label:'Les exiler, sans effusion de sang',sub:'-orbes de compensation',title:'le Clément',mul:-1.4}]},
+  {id:'bete',prompt:'Une bête légendaire ravage les troupeaux, dans les terres sauvages du Vent.',
+   options:[{label:'La traquer toi-même, en personne',sub:'Une meute redoutable apparaît près d\'Aerith - un vrai défi, un vrai butin',title:'le Chasseur',mul:2.8,
+             apply:()=>spawnCrisisCamp(CITY.wind.x*T,CITY.wind.y*T+120,{brute:3,hound:2})},
+            {label:'Laisser les chasseurs locaux s\'en charger',sub:'+orbes modestes, plus sûr',title:'le Prudent',mul:0.6}]},
+  {id:'succession_crise',prompt:'Deux prétendants rivaux contestent ouvertement ta légitimité.',
+   options:[{label:'Écraser toute contestation',sub:'Leurs partisans en armes apparaissent près des remparts',title:'le Tyran',mul:2.2,
+             apply:()=>spawnCrisisCamp(WALLTOWERS[2].x,WALLTOWERS[2].y,{knight:3,hound:3})},
+            {label:'Un conseil ouvert pour trancher pacifiquement',sub:'+orbes modestes, ta légitimité en sort renforcée',title:'le Légitime',mul:0.8}]}];
 // affaires courantes : une fois les grandes décisions prises, le conseil continue d'apporter
 // de nouvelles affaires, au hasard, tant que tu règnes - le règne ne s'arrête jamais vraiment.
 const RECURRING_AFFAIRS=[
@@ -1265,7 +1298,24 @@ const RECURRING_AFFAIRS=[
             {label:'Garder l\'or pour le trésor',sub:'+orbes gardés',title:'le Comptable',mul:0.4}]},
   {id:'alliance',prompt:'Un royaume lointain propose une alliance militaire.',
    options:[{label:'Accepter, sceller le pacte',sub:'-orbes de cadeaux diplomatiques',title:'l\'Allié',mul:-1},
-            {label:'Décliner poliment, rester neutre',sub:'+orbes gardés',title:'le Neutre',mul:0.4}]}];
+            {label:'Décliner poliment, rester neutre',sub:'+orbes gardés',title:'le Neutre',mul:0.4}]},
+  // affaires contextuelles : elles ne peuvent apparaître qu'une fois le bâtiment concerné vraiment construit
+  {id:'offrande_temple',cond:()=>S.council&&S.council.temple,
+   prompt:'Les prêtres du Temple des Quatre Dieux réclament une offrande pour l\'entretien du sanctuaire.',
+   options:[{label:'La financer généreusement',sub:'-orbes, les dieux sont honorés',title:'le Pieux',mul:-0.7},
+            {label:'Une offrande symbolique suffira',sub:'+orbes gardés',title:'le Pragmatique',mul:0.3}]},
+  {id:'ouvrages_biblio',cond:()=>S.council&&S.council.library,
+   prompt:'La grande bibliothèque manque d\'ouvrages rares pour ses nouvelles étagères.',
+   options:[{label:'Financer des expéditions de collecte',sub:'-orbes, le savoir du royaume grandit',title:'l\'Érudit',mul:-0.6},
+            {label:'Se contenter de ce qu\'il y a',sub:'+orbes gardés',title:'le Modeste',mul:0.3}]},
+  {id:'eleves_academie',cond:()=>S.council&&S.council.academy,
+   prompt:'L\'académie accueille plus d\'élèves que prévu. Faut-il l\'agrandir ?',
+   options:[{label:'L\'agrandir',sub:'-orbes, de futurs érudits en plus',title:'le Visionnaire',mul:-0.8},
+            {label:'Limiter les admissions',sub:'+orbes gardés',title:'le Sélectif',mul:0.3}]},
+  {id:'taxes_marche',cond:()=>S.council&&S.council.market,
+   prompt:'Le grand marché prospère. Faut-il relever ses taxes ?',
+   options:[{label:'Relever les taxes',sub:'+orbes, les marchands grognent',title:'le Taxateur',mul:1.4},
+            {label:'Les laisser telles quelles',sub:'+orbes modestes, les marchands sourient',title:'l\'Accommodant',mul:0.5}]}];
 function openCouncil(){
   S.decisions=S.decisions||[];S.works=S.works||{};
   const left=DECISIONS.filter(d=>!S.decisions.includes(d.id));
@@ -1286,12 +1336,15 @@ function openCouncil(){
   choices.push({label:'Rien pour l\'instant',sub:'Revenir plus tard',fn:()=>{}});
   say([{who:'Maître Oryn',text:`Le royaume t'attend, ${N()}${S.title?', '+S.title:''}. Que veux-tu faire ?`,choices}]);}
 function openAffair(){
-  const n=RECURRING_AFFAIRS.length;let idx=Math.floor(rnd(0,n));
-  if(idx===S.lastAffair&&n>1)idx=(idx+1)%n;
-  const a=RECURRING_AFFAIRS[idx];
+  // ~1 affaire sur 5 est une grande crise, bien plus lourde de conséquences (et parfois de vrais ennemis à combattre)
+  const pool=RECURRING_AFFAIRS.filter(a=>!a.cond||a.cond());
+  const src=Math.random()<0.22?CRISES:pool;
+  let list=src.filter(a=>a.id!==S.lastAffair);if(!list.length)list=src;
+  const a=list[Math.floor(rnd(0,list.length))];
   const base=Math.round((16+S.lvl*1.5)*(1+talentLvl('for')*0.15));
   say([{who:'Maître Oryn',text:a.prompt,choices:a.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
-    S.lastAffair=idx;const amt=Math.round(base*o.mul*(o.mul>0?(S.taxMul||1):1));S.orbes=Math.max(0,S.orbes+amt);S.title=o.title;
+    S.lastAffair=a.id;const amt=Math.round(base*o.mul*(o.mul>0?(S.taxMul||1):1));S.orbes=Math.max(0,S.orbes+amt);S.title=o.title;
+    if(o.apply)o.apply();
     S.affairsDone=(S.affairsDone||0)+1;
     showBanner('Décision prise',`${amt>=0?'+':''}${amt} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);}
 function buildWork(w){
@@ -1598,7 +1651,7 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
     divines:[],pact2:false,pact2started:false,masterDead:false,valerianDead:false,emperor:false,questBefore:null,camps:null,gods:[],bless:[],
     decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false,
       outpost:false,refuge:false,unified:false,autonomy:false,fortRazed:false,fortPrison:false},
-    works:{},lastAffair:-1,affairsDone:0,taxMul:1,
+    works:{},lastAffair:null,affairsDone:0,taxMul:1,
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1627,7 +1680,7 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
     outpost:false,refuge:false,unified:false,autonomy:false,fortRazed:false,fortPrison:false};
   S.council=(d.council&&typeof d.council==='object')?Object.assign({},COUNCIL_DEFAULTS,d.council):Object.assign({},COUNCIL_DEFAULTS);
   S.works=(d.works&&typeof d.works==='object')?Object.assign({},d.works):{};
-  S.lastAffair=typeof d.lastAffair==='number'?d.lastAffair:-1;S.affairsDone=d.affairsDone||0;
+  S.lastAffair=typeof d.lastAffair==='string'?d.lastAffair:null;S.affairsDone=d.affairsDone||0;
   S.taxMul=typeof d.taxMul==='number'?d.taxMul:1;
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
@@ -1795,9 +1848,9 @@ function update(dt){
     if(e.kvx||e.kvy){moveEnt(e,e.kvx*dt,e.kvy*dt);const f=Math.exp(-8*dt);e.kvx*=f;e.kvy*=f;if(Math.abs(e.kvx)<2)e.kvx=0;if(Math.abs(e.kvy)<2)e.kvy=0;}
     if(e.def.passive)continue;
     const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;
-    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&d>2600){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&!e.crisis&&d>2600){e.dead=true;continue;}
     // garde-fou : un Oublié ne doit jamais se trouver sous un dôme protégé hors d'un assaut scénarisé
-    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&inSafe(e.x,e.y)){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&!e.crisis&&inSafe(e.x,e.y)){e.dead=true;continue;}
     if(e.stun>0){e.stun-=dt;e.slow=1;continue;}
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
@@ -2246,6 +2299,25 @@ function drawFortRazed(){const x=FORTMARK.x,y=FORTMARK.y;
   ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#ffffff',.1+Math.sin(time*1.2)*.04);circ(x,y-4,40);
   ctx.globalCompositeOperation='source-over';
   bigLabel(x,y-40,'Ici tomba la forteresse de Malvorn','#c9c2b0',16);}
+function drawPort(){const x=PORT.x,y=PORT.y;
+  softShadow(x,y+20,70,16,.24);
+  ctx.fillStyle='#8a90bf';ctx.beginPath();ctx.ellipse(x,y+4,66,20,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#8a7a5e';ctx.fillRect(x-56,y-8,112,14);
+  for(let k=0;k<3;k++){const sx=x-36+k*36;
+    ctx.fillStyle='#d8c99a';ctx.beginPath();ctx.moveTo(sx-16,y-10);ctx.lineTo(sx+16,y-10);ctx.lineTo(sx+8,y-30);ctx.lineTo(sx-8,y-30);ctx.fill();
+    ctx.strokeStyle='#5a4f40';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,y-30);ctx.lineTo(sx,y-46);ctx.stroke();
+    ctx.fillStyle='#e6c46a';ctx.beginPath();ctx.moveTo(sx,y-46);ctx.lineTo(sx+16,y-40);ctx.lineTo(sx,y-34);ctx.fill();}
+  if(Math.random()<.4){ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#cfe9ff',.25);circ(x+rnd(-50,50),y+rnd(-6,10),2);ctx.globalCompositeOperation='source-over';}
+  bigLabel(x,y-62,'Port impérial','#cfe9ff',18);}
+function drawNecropole(){const x=NECROPOLE.x,y=NECROPOLE.y;
+  softShadow(x,y+20,60,14,.28);
+  ctx.fillStyle=shade('#857d70',-0.1);ctx.beginPath();ctx.ellipse(x,y,58,18,0,0,TAU);ctx.fill();
+  for(let k=0;k<5;k++){const sx=x-44+k*22;
+    ctx.fillStyle='#c9c2b0';ctx.fillRect(sx-5,y-26,10,26);
+    ctx.fillStyle=shade('#c9c2b0',-0.15);ctx.beginPath();ctx.arc(sx,y-26,5,Math.PI,0);ctx.fill();}
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#9fd9ff',.16+Math.sin(time*1.1)*.05);circ(x,y-30,30);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-56,'Nécropole impériale','#c9c2b0',18);}
 function drawFortPrison(){const x=FORTMARK.x,y=FORTMARK.y;
   softShadow(x,y+22,50,14,.3);
   ctx.fillStyle='#4a443a';ctx.fillRect(x-44,y-40,88,44);
@@ -2471,6 +2543,8 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
     if(S.works&&S.works.observatoire)drawObservatory();
     if(S.works&&S.works.arc)drawArch();
     if(S.works&&S.works.bannieres)drawBanners();
+    if(S.works&&S.works.port)drawPort();
+    if(S.works&&S.works.necropole)drawNecropole();
     if(S.council&&S.council.outpost)drawOutpost();
     if(S.council&&S.council.refuge)drawRefuge();
     if(S.council&&(S.council.unified||S.council.autonomy))drawClanBanners();
@@ -2944,7 +3018,9 @@ if(location.search.indexOf('dbg')>=0)window.E={
   tal:()=>openTalents(),talClose:()=>closeTalents(),toggleMount:()=>toggleMount(),load:d=>loadGame(d),snap:()=>snapshot(),
   cast:i=>{P.cds[i]=0;cast(i);},icons:()=>SPELLS[S.clan].map(s=>s.ic),fxLen:()=>fx.length,
   council:()=>openCouncil(),nsp:()=>NSP,
-  pts:()=>({WALLTOWERS,MARKET,LIBRARY,MINT,STATUE,GARDENS,FOUNTAIN,OBSERVATORY,ARCH,COUNCIL,TEMPLE,ACADEMY})};
+  pts:()=>({WALLTOWERS,MARKET,LIBRARY,MINT,STATUE,GARDENS,FOUNTAIN,OBSERVATORY,ARCH,COUNCIL,TEMPLE,ACADEMY,PORT,NECROPOLE,FRONTIER,FORTMARK,CITY}),
+  nEnemies:()=>enemies.filter(e=>!e.dead).length,crisisFn:(id,i)=>CRISES.find(c=>c.id===id).options[i].apply(),
+  rawP:()=>({x:P.x,y:P.y,T,VW,ZOOM,dlgOpen,helpOpen,savesOpen,grimOpen,talOpen,camx:cam.x,camy:cam.y})};
 })();
 </script>
 </body>
