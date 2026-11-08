@@ -137,7 +137,7 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <div class="row">
       <button class="btn" id="startBtn" type="button">Commencer l'aventure</button>
     </div>
-    <p class="keys"><b>ZQSD</b> ou flèches : se déplacer · <b>Souris</b> : viser · <b>Clic</b> ou <b>Espace</b> : épée · <b>1</b> à <b>0</b> : les dix sorts de ta barre · <b>B</b> : grimoire pour choisir tes dix sorts favoris · <b>R T F G V</b> : pouvoirs divins (selon ton pacte) · <b>E</b> : parler, portail · <b>M</b> : monture · <b>H</b> : menu et sauvegarde. Sur tablette : joystick à gauche pour marcher, doigt à droite pour viser, boutons pour frapper, et le livre pour ouvrir le grimoire.</p>
+    <p class="keys"><b>ZQSD</b> ou flèches : se déplacer · <b>Souris</b> : viser · <b>Clic</b> ou <b>Espace</b> : épée · <b>1</b> à <b>0</b> : les dix sorts (et pouvoirs divins) de ta barre · <b>B</b> : grimoire pour choisir tes dix favoris, pouvoirs divins compris · <b>E</b> : parler, portail · <b>M</b> : monture · <b>H</b> : menu et sauvegarde. Sur tablette : joystick à gauche pour marcher, doigt à droite pour viser, boutons pour frapper, et le livre pour ouvrir le grimoire.</p>
   </div>
 </div>
 
@@ -148,10 +148,8 @@ textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       <span><b>ZQSD / WASD / flèches</b> : se déplacer</span>
       <span><b>Souris</b> : viser</span>
       <span><b>Clic gauche / Espace</b> : coup d'épée</span>
-      <span><b>1</b> à <b>9</b> et <b>0</b> : les dix sorts épinglés dans ta barre</span>
-      <span><b>B</b> : ouvrir le grimoire et épingler d'autres sorts</span>
-      <span><b>R T F G V</b> : tes pouvoirs divins, un par pacte scellé</span>
-      <span><b>R</b> : pouvoir divin</span>
+      <span><b>1</b> à <b>9</b> et <b>0</b> : les dix sorts et pouvoirs divins épinglés dans ta barre</span>
+      <span><b>B</b> : ouvrir le grimoire et choisir tes favoris</span>
       <span><b>E</b> : parler, prendre un objet, portail, registre</span>
       <span><b>M</b> : monter ou descendre de ta monture</span>
       <span><b>Entrée</b> : dialogue suivant</span>
@@ -778,7 +776,7 @@ function hit(e,dmg,a,o={}){if(e.dead)return;dmg=Math.max(1,Math.round(dmg*(0.9+M
   fx.push({k:'num',x:e.x+rnd(-6,6),y:e.y-e.r-14,v:dmg,t:0,life:.8,col:o.col||'#ffffff'});
   if(e.hp<=0)kill(e);}
 function kill(e){e.dead=true;burst(e.x,e.y,e.def.boss?'#ff3355':'#a35cff',e.def.boss?60:16,e.def.boss?340:170);
-  gainXp(Math.round(e.def.xp*(1+(S.lvl-1)*0.16)));
+  gainXp(e.def.xp);
   for(let i=0;i<Math.ceil(e.def.orb/2);i++)pickups.push({k:'orb',x:e.x+rnd(-8,8),y:e.y+rnd(-8,8),vx:rnd(-90,90),vy:rnd(-90,90),v:2});
   if(e.def.orb&&Math.random()<.12)pickups.push({k:'heart',x:e.x,y:e.y,vx:rnd(-60,60),vy:rnd(-60,60),v:Math.round(P.maxHp*.25)});
   if(e.tuto)S.tutoLeft--;
@@ -790,7 +788,7 @@ function levelUp(){S.lvl++;P.maxHp=hpMax(S.lvl);P.hp=P.maxHp;
   const L=SPELLS[S.clan];let msg='Tes sorts et ton épée frappent plus fort';
   for(let i=0;i<NSP;i++)if(L[i].lvl===S.lvl&&!S.learned[i]){msg=L[i].n+' est à ta portée · va voir '+teachLabel(L[i]);break;}
   showBanner('Niveau '+S.lvl,msg);ring(P.x,P.y,10,140,'#e6c46a',.7,5);burst(P.x,P.y,'#e6c46a',32,260);}
-function hurt(dmg){if(P.inv>0||P.dead)return;dmg=Math.round(dmg*(1+(S.lvl-1)*0.07)*(P.avatarT>0?.35:1));
+function hurt(dmg){if(P.inv>0||P.dead)return;dmg=Math.round(dmg*(1+(S.lvl-1)*0.1)*(P.avatarT>0?.35:1));
   if(P.shield>0){const ab=Math.min(P.shield,dmg);P.shield-=ab;dmg-=ab;
     if(dmg<=0){P.inv=.2;ring(P.x,P.y,14,32,CL().glow,.2,3);return;}}
   P.hp-=dmg;P.inv=.5;P.hurtT=.35;shake(5,.2);fx.push({k:'num',x:P.x,y:P.y-34,v:-dmg,t:0,life:.8,col:'#ff5a6a'});
@@ -911,7 +909,6 @@ function finishGod(k){S.incant=null;S.gods=S.gods||[];S.gods.push(k);
        {who:CLANS[k].god,text:`Je ne te donnerai pas de sort : tu en as assez. Je te donne ma bénédiction — ${b.d}.`},
        {text:left?`Il reste ${left} dieu${left>1?'x':''} à convaincre.`:'Les quatre dieux t\'ont reconnu.'}],
       ()=>save());}
-const DKEYS=['R','T','F','G','V'];
 // premier pacte : un seul pouvoir divin
 function finishPact(){
   S.incant=null;S.quest='_';S.divines=S.divines||[];
@@ -921,12 +918,15 @@ function finishPact(){
        {who:g,text:'Je te donne deux choses. Toute ta magie va croître, d\'un coup. Et je t\'accorde un pouvoir divin. Un seul, car tu n\'es qu\'un enfant. Choisis.'},
        {text:'Six lumières flottent devant toi, chacune portant un pouvoir.',
         choices:DIVINE.map((d,i)=>({label:d.n,sub:d.d,fn:()=>pickDivine1(i)}))}]);}
-function pickDivine1(i){S.divines=[i];S.pact=true;S.divine=i;
+function pinDivine(k){const idx=NSP+k;if(!S.bar.includes(idx)){
+    if(S.bar.length<DPER)S.bar.push(idx);else S.bar[S.bar.length-1]=idx;}
+  return(S.bar.indexOf(idx)+1)%10;}
+function pickDivine1(i){S.divines=[i];S.pact=true;S.divine=i;const slot=pinDivine(0);
   ring(P.x,P.y,10,300,CL().glow,1.3,11);burst(P.x,P.y,CL().col,66,440);shake(16,1.2);
-  say([{who:CL().god,text:`${DIVINE[i].n}. Touche R. Ne t'en sers pas pour rien.`},
+  say([{who:CL().god,text:`${DIVINE[i].n}. Ne t'en sers pas pour rien.`},
        {text:'Toute ta magie frappe désormais un tiers plus fort. Tu sens la différence jusque dans tes mains.'},
        {who:CL().god,text:'Malvorn a fait un pacte lui aussi, avec autre chose que moi. Quand tu le trouveras, tu comprendras la différence.'}],
-      ()=>{S.quest='trainUlt';showBanner('Pacte divin scellé',DIVINE[i].n+' · touche R',3.6);save();});}
+      ()=>{S.quest='trainUlt';showBanner('Pacte divin scellé',DIVINE[i].n+' · touche '+slot,3.6);save();});}
 // second pacte : quatre pouvoirs arrachés au dieu
 function finishPact2(){
   S.incant=null;S.quest='_';
@@ -942,15 +942,15 @@ function askDivine4(){
   const left=DIVINE.map((d,i)=>i).filter(i=>!S.divines.includes(i));
   const n=S.divines.length;
   if(n>=NDIV||!left.length){endPact2();return;}
-  say([{text:`Pouvoir divin ${n+1} sur ${NDIV} · touche ${DKEYS[n]}`,
+  say([{text:`Pouvoir divin ${n+1} sur ${NDIV}`,
         choices:left.map(i=>({label:DIVINE[i].n,sub:DIVINE[i].d,fn:()=>pickDivine2(i)}))}]);}
-function pickDivine2(i){S.divines.push(i);
+function pickDivine2(i){S.divines.push(i);const slot=pinDivine(S.divines.length-1);
   ring(P.x,P.y,10,200,CL().glow,.8,8);burst(P.x,P.y,CL().col,40,320);
-  showBanner(DIVINE[i].n,'Touche '+DKEYS[S.divines.length-1],2);
+  showBanner(DIVINE[i].n,'Touche '+slot,2);
   setTimeout(askDivine4,850);}
 function endPact2(){S.pact2=true;
   ring(P.x,P.y,10,360,CL().glow,1.6,13);burst(P.x,P.y,CL().col,90,520);shake(20,1.6);
-  say([{who:CL().god,text:`Touches ${DKEYS.slice(0,S.divines.length).join(', ')}. Tu portes maintenant cinq de mes six pouvoirs.`},
+  say([{who:CL().god,text:'Tu portes maintenant cinq de mes six pouvoirs, tous dans ta barre. Ouvre le grimoire si tu veux les réorganiser.'},
        {who:CL().god,text:'Va. Et quand tu trouveras Malvorn, rappelle-toi que la colère rend fort un instant, et aveugle tout le reste du temps.'}],
       ()=>{S.quest='hideout';S.questBefore=null;
         showBanner('Second pacte scellé',S.divines.map(d=>DIVINE[d].n).join(' · '),4.5);save();});}
@@ -1020,7 +1020,7 @@ function startExam(){S.examOn=true;S.examT=55;
   for(let k=0;k<7;k++){const a=k/7*TAU;mkEnemy('golem',ARENA.x+Math.cos(a)*5.2*T,ARENA.y+Math.sin(a)*5.2*T,{golem:true});}
   showBanner('Examen de magicien confirmé','Détruis les 7 golems en 55 secondes',2.4);}
 function failExam(){S.examOn=false;S.examNeedExit=true;enemies.forEach(e=>{if(e.golem)e.dead=true;});}
-const WAVES=[{scout:7,hound:4,mage:3},{scout:6,hound:5,mage:4,knight:2},{hound:6,mage:5,knight:3,brute:3},{boss:1,hound:5,mage:4,knight:2}];
+const WAVES=[{scout:4,hound:3,mage:2},{scout:4,hound:3,mage:3,knight:1},{hound:4,mage:3,knight:2,brute:2},{boss:1,hound:3,mage:2,knight:1}];
 const fireSpots=[];
 function startAttack(){S.quest='attack';S.wave=0;S.waveOn=false;S.waveDelay=2;
   for(let k=0;k<30;k++){const a=rnd(0,TAU),d=rnd(4,CAPR-2)*T,x=CAP.x+Math.cos(a)*d,y=CAP.y+Math.sin(a)*d;
@@ -1042,12 +1042,12 @@ function makeCamps(){S.camps=[];
 function campNear(){if(!S.camps)return null;
   for(const c of S.camps)if(!c.cleared&&dist(P.x,P.y,c.x,c.y)<13*T)return c;return null;}
 function spawnCampFor(c){if(c.spawned)return;c.spawned=true;
-  for(let k=0;k<7;k++){const a=k/7*TAU,d=rnd(40,130);
+  for(let k=0;k<4;k++){const a=k/4*TAU,d=rnd(40,130);
     const x=c.x+Math.cos(a)*d,y=c.y+Math.sin(a)*d;
     const type=k===0?'brute':k<3?'knight':k<5?'mage':'hound';
     mkEnemy(type,blocked(x,y,18)?c.x:x,blocked(x,y,18)?c.y:y,{camp2:c});}}
 function campsLeft(){return S.camps?S.camps.filter(c=>!c.cleared).length:3;}
-const FWAVES=[{hound:7,mage:4,knight:3},{knight:5,brute:3,mage:5},{hound:6,knight:6,mage:5},{boss2:1,knight:4,brute:3}];
+const FWAVES=[{hound:4,mage:3,knight:2},{knight:3,brute:2,mage:3},{hound:4,knight:3,mage:3},{boss2:1,knight:3,brute:2}];
 function startFort(){S.fwave=0;S.fwaveOn=false;S.fwaveDelay=1.5;
   showBanner('La forteresse des Oubliés','Vague 1 / 4',2.6);}
 function spawnFWave(w){const def=FWAVES[w];let gi=0;
@@ -1085,7 +1085,7 @@ function updQuest(dt){
     case 'attack':
       if(!S.waveOn){S.waveDelay-=dt;if(S.waveDelay<=0){spawnWave(S.wave);S.waveOn=true;}}
       else if(!enemies.some(e=>e.wave&&!e.dead)){S.waveOn=false;S.wave++;gainXp(140);
-        P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.45));
+        P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.25));
         if(S.wave>=WAVES.length){S.quest='_';fireSpots.length=0;
           say(TXT.victory(),()=>{S.quest='pactMaster';showBanner('Nouvelle quête','Retourne voir le maître de '+CL().city);save();});}
         else{S.waveDelay=4;showBanner('Vague '+(S.wave+1)+' / 4',S.wave===3?'Un lieutenant de Malvorn approche':'Astralis tient encore. Soigne-toi !');}}
@@ -1104,7 +1104,7 @@ function updQuest(dt){
       if(S.fwave!==undefined){
         if(!S.fwaveOn){S.fwaveDelay-=dt;if(S.fwaveDelay<=0){spawnFWave(S.fwave);S.fwaveOn=true;}}
         else if(!enemies.some(e=>e.fort&&!e.dead)){S.fwaveOn=false;S.fwave++;gainXp(400);
-          P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.5));
+          P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.28));
           if(S.fwave>=FWAVES.length){S.quest='_';S.fwave=undefined;
             say(TXT.malvorn(),()=>{S.quest='malvornFight';S.mSpawned=false;
               showBanner('Malvorn','Il t\'attend au sommet du donjon',3);save();});}
@@ -1124,12 +1124,12 @@ function updQuest(dt){
       const c=cityPx(S.clan),inCity=dist(P.x,P.y,c.x,c.y)<CITYR*T;
       if(!inCity)break;
       if(!S.awaveOn){S.awaveDelay-=dt;
-        if(S.awaveDelay<=0){const def=[{hound:8,mage:5,knight:3},{knight:5,brute:4,mage:6},{brute:5,knight:6,mage:6},{brute:6,hound:6,mage:7,knight:3}][S.awave];
+        if(S.awaveDelay<=0){const def=[{hound:4,mage:3,knight:2},{knight:3,brute:2,mage:3},{brute:3,knight:3,mage:3},{brute:3,hound:3,mage:3,knight:2}][S.awave];
           let gi=0;for(const type in def)for(let k=0;k<def[type];k++){const a=(gi++)*0.7+rnd(-.2,.2);
             mkEnemy(type,c.x+Math.cos(a)*(CITYR-2)*T,c.y+Math.sin(a)*(CITYR-2)*T,{awave:true});}
           S.awaveOn=true;}}
       else if(!enemies.some(e=>e.awave&&!e.dead)){S.awaveOn=false;S.awave++;gainXp(350);
-        P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.5));
+        P.hp=Math.min(P.maxHp,P.hp+Math.round(P.maxHp*.28));
         if(S.awave>=4){S.quest='_';S.masterDead=true;
           say(TXT.masterDies(),()=>{S.quest='pact2';showBanner('Retourne à la grotte','Tu as un compte à régler avec ton dieu',4);save();});}
         else{S.awaveDelay=3.5;showBanner('Vague '+(S.awave+1)+' / 4',S.awave===3?'La garde personnelle de Malvorn est là':'Ils visent la tour du maître');}}
@@ -1339,7 +1339,7 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.camps=Array.isArray(d.camps)?d.camps.map(c=>Object.assign({},c,{spawned:false})):null;
   S.gods=Array.isArray(d.gods)?d.gods.slice():[];S.bless=Array.isArray(d.bless)?d.bless.slice():[];
   S.questBefore=d.questBefore||null;
-  if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<NSP&&S.learned[i]).slice(0,DPER);
+  if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
   if(S.quest==='attack'||S.quest==='attack2'||S.quest==='fortress'||S.quest==='malvornFight'||S.quest==='_')
     S.quest=S.emperor?'gods':S.pact2?(S.camps&&S.camps.every(c=>c.cleared)?'fortress':'hideout')
@@ -1425,16 +1425,16 @@ function update(dt){
   // apparition des Oubliés : seulement loin des villes et des routes
   if(['travel','sword','exam','grow6','tour','grow10','recall','pactMaster','pactShrine','free'].includes(S.quest)){
     spawnT-=dt;
-    if(spawnT<=0){const w=wildness(P.x,P.y);spawnT=w>0?1.1+(1-w)*2.2:3;
-      const cnt=enemies.filter(e=>!e.golem&&!e.dead).length,cap=Math.round((5+S.lvl*1.1)*w);
-      if(w>0.08&&cnt<cap)for(let n=0;n<2;n++)for(let k=0;k<16;k++){
+    if(spawnT<=0){const w=wildness(P.x,P.y);spawnT=w>0?1.8+(1-w)*3.4:4.5;
+      const cnt=enemies.filter(e=>!e.golem&&!e.dead).length,cap=Math.round((4+S.lvl*0.55)*w);
+      if(w>0.08&&cnt<cap)for(let n=0;n<1;n++)for(let k=0;k<16;k++){
         const a=rnd(0,TAU),d=rnd(480,820),x=P.x+Math.cos(a)*d,y=P.y+Math.sin(a)*d,i=tileAt(x,y);
         if(i<0||tiles[i]===2||blocked(x,y,18)||wildness(x,y)<0.1)continue;
         const r=Math.random();
         const type=S.lvl>=10&&r<.14?'brute':S.lvl>=7&&r<.3?'knight':S.lvl>=3&&r<.54?'mage':r<.76?'hound':'scout';
         const e=mkEnemy(type,x,y);
         // petits groupes : les Oubliés patrouillent rarement seuls
-        if(Math.random()<.55)for(let g=0;g<1+Math.floor(Math.random()*2);g++){
+        if(Math.random()<.3)for(let g=0;g<1;g++){
           const gx=x+rnd(-70,70),gy=y+rnd(-70,70);
           if(!blocked(gx,gy,16))mkEnemy(Math.random()<.5?'scout':'hound',gx,gy);}
         break;}}}
@@ -1502,6 +1502,8 @@ function update(dt){
     if(e.def.passive)continue;
     const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;
     if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&d>2600){e.dead=true;continue;}
+    // garde-fou : un Oublié ne doit jamais se trouver sous un dôme protégé hors d'un assaut scénarisé
+    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&inSafe(e.x,e.y)){e.dead=true;continue;}
     if(e.stun>0){e.stun-=dt;e.slow=1;continue;}
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
@@ -1522,7 +1524,7 @@ function update(dt){
       else if(Math.random()<.01){e.wx=rnd(-1,1);e.wy=rnd(-1,1);}
       if(e.wx!==undefined&&hd<=200){mx=e.wx*.35;my=e.wy*.35;}}
     if(mx||my){e.walk+=dt*8;const nx=e.x+mx*v*dt,ny=e.y+my*v*dt;
-      if(atk||e.tuto||!inSafe(nx,ny)||inSafe(e.x,e.y))moveEnt(e,mx*v*dt,my*v*dt);}
+      if(atk||e.tuto||e.camp||e.fort||e.mfinal||!inSafe(nx,ny))moveEnt(e,mx*v*dt,my*v*dt);}
     if(e.lunge)e.lunge=Math.max(0,e.lunge-dt);}
   for(let i=0;i<enemies.length;i++){const a=enemies[i];if(a.dead)continue;
     for(let j=i+1;j<enemies.length;j++){const b=enemies[j];if(b.dead)continue;
@@ -1984,7 +1986,6 @@ function drawAim(){const C=CL(),lock=AIM.lock,d=dist(P.x,P.y,AIM.x,AIM.y);
 /* ---------- boutons ---------- */
 const DPER=10,TPER=5;
 function slotsOf(){return S.bar.slice(0,DPER);}
-function divSlots(){return(S.divines||[]).map((_,k)=>NSP+k);}
 function layoutButtons(){const B=[];if(!S)return B;
   if(touchMode){const bx=VW-80-INS.r,by=VH-78-INS.b,R=74,rad=d=>d*Math.PI/180;
     B.push({id:'atk',x:bx,y:by,r:30});
@@ -1994,17 +1995,15 @@ function layoutButtons(){const B=[];if(!S)return B;
     [204,168,132,96,60].forEach((d,i)=>{if(ids2[i]===undefined)return;
       B.push({id:ids2[i],x:bx+Math.cos(rad(d))*R*1.62,y:by-Math.sin(rad(d))*R*1.62,r:19});});
     B.push({id:'gm',x:bx+Math.cos(rad(224))*R,y:by-Math.sin(rad(224))*R,r:16});
-    divSlots().forEach((id,k)=>{B.push({id,x:bx+Math.cos(rad(8-k*20))*R*.92,y:by-Math.sin(rad(8-k*20))*R*.92,r:17});});
     const rx=VW-28-INS.r,ry=(VW<620?126:166)+INS.t;
     B.push({id:'help',x:rx,y:ry,r:16});
     B.push({id:'mount',x:rx,y:ry+40,r:16});
     if(interact)B.push({id:'act',x:rx,y:ry+80,r:20});}
-  else{const ids=slotsOf(),dv=divSlots(),n=ids.length+dv.length+2,compact=VW<900;
+  else{const ids=slotsOf(),n=ids.length+2,compact=VW<900;
     const sz=compact?Math.min(44,(VW-70)/n-4):50,gap=compact?4:8;
     const w=n*sz+(n-1)*gap,x0=VW/2-w/2,y=VH-sz-16-INS.b;
     let k=0;B.push({id:'atk',x:x0+sz/2,y:y+sz/2,r:sz/2,sq:1});k++;
     for(const i of ids){B.push({id:i,x:x0+k*(sz+gap)+sz/2,y:y+sz/2,r:sz/2,sq:1});k++;}
-    for(const id of dv){B.push({id,x:x0+k*(sz+gap)+sz/2,y:y+sz/2,r:sz/2,sq:1});k++;}
     B.push({id:'gm',x:x0-26,y:y+sz/2,r:16});}
   return B;}
 function hitBtn(x,y){for(const b of layoutButtons())if(Math.hypot(x-b.x,y-b.y)<b.r+6)return b;return null;}
@@ -2102,7 +2101,7 @@ function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact
   ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1;ctx.strokeRect(mx+cam.x*k,my+cam.y*k,VW/ZOOM*k,VH/ZOOM*k);
   if(!touchMode){ctx.font=`600 12px ${FB}`;ctx.fillStyle='#a4a9c4';ctx.textAlign='right';
     ctx.fillText(S.mount?`M : ${C.mount}${P.mounted?' (monté)':''}`:'H : commandes',VW-12-INS.r,my+ms+22);
-    if(S.mount)ctx.fillText('G : grimoire des sorts · H : commandes',VW-12-INS.r,my+ms+38);ctx.textAlign='left';}
+    if(S.mount)ctx.fillText('B : grimoire des sorts · H : commandes',VW-12-INS.r,my+ms+38);ctx.textAlign='left';}
   if(interact&&!touchMode){const t='E  ·  '+interact.label;ctx.font=`700 15px ${FB}`;const w=ctx.measureText(t).width+26;
     panel(VW/2-w/2,VH-130-INS.b,w,34);ctx.fillStyle='#e6c46a';ctx.textAlign='center';ctx.fillText(t,VW/2,VH-108-INS.b);ctx.textAlign='left';}
   if(S.incant!=null){const w=Math.min(340,VW-60),x=VW/2-w/2,y=VH*.18;
@@ -2145,7 +2144,7 @@ function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact
     if(locked&&isSp&&!divine){ctx.font=`800 10px ${FB}`;ctx.textAlign='center';ctx.fillStyle=noLearn?'#d8c07a':'#a4a9c4';
       ctx.fillText(noLearn?'maître':'niv '+sp.lvl,b.x,b.y+(b.sq?19:16));ctx.textAlign='left';}
     if(b.sq){ctx.font=`800 10px ${FB}`;ctx.fillStyle='#a4a9c4';
-      const key=b.id==='atk'?'⎵':divine?DKEYS[b.id-NSP]:String((S.bar.indexOf(b.id)+1)%10);
+      const key=b.id==='atk'?'⎵':String((S.bar.indexOf(b.id)+1)%10);
       ctx.fillText(key,b.x-b.r+5,b.y-b.r+12);
       if(!locked&&b.r>20&&sp){ctx.font=`600 9px ${FB}`;ctx.textAlign='center';ctx.fillStyle='#c9cde0';
         const nm=sp.n;ctx.fillText(nm.length>12?nm.slice(0,11)+'.':nm,b.x,b.y+b.r-5);ctx.textAlign='left';}
@@ -2194,10 +2193,8 @@ addEventListener('keydown',e=>{if(!inGame())return;
   if(grimOpen){if(e.code==='Escape'||e.code==='KeyB'){closeGrimoire();e.preventDefault();}return;}
   if(dlgOpen){if(!dChoice&&['Enter','Space','KeyE','NumpadEnter'].includes(e.code)){nextLine();e.preventDefault();}return;}
   keys[e.code]=true;
-  const dk=e.code.indexOf('Key')===0?DKEYS.indexOf(e.code.slice(3)):-1;
   if(/^(Digit|Numpad)[1-9]$/.test(e.code))castSlot(Number(e.code.slice(-1))-1);
   else if(/^(Digit|Numpad)0$/.test(e.code))castSlot(9);
-  else if(dk>=0)cast(NSP+dk);
   else if(e.code==='KeyB'){e.preventDefault();openGrimoire();}
   else if(e.code==='KeyE')doInteract();
   else if(e.key&&e.key.toLowerCase()==='m')toggleMount();
@@ -2302,7 +2299,14 @@ function buildGrimoire(){const SP=SPELLS[S.clan];gmGrid.innerHTML='';
     const b=document.createElement('button');b.type='button';b.className='gmpin'+(pinned?' on':'');
     b.setAttribute('aria-label',pinned?'Retirer de la barre':'Épingler dans la barre');b.textContent=pinned?'★':'☆';
     if(learned)b.onclick=()=>togglePin(i);else b.disabled=true;
-    c.appendChild(b);gmGrid.appendChild(c);});}
+    c.appendChild(b);gmGrid.appendChild(c);});
+  (S.divines||[]).forEach((d,k)=>{const i=NSP+k,dv=DIVINE[d],pinned=S.bar.includes(i);
+    const c=document.createElement('div');c.className='gmcard divine'+(pinned?' pinned':'');
+    const nm=document.createElement('div');nm.className='gnm';nm.textContent=dv.n;c.appendChild(nm);
+    const sub=document.createElement('div');sub.className='gsub';sub.textContent='Pouvoir divin · '+dv.d;c.appendChild(sub);
+    const b=document.createElement('button');b.type='button';b.className='gmpin'+(pinned?' on':'');
+    b.setAttribute('aria-label',pinned?'Retirer de la barre':'Épingler dans la barre');b.textContent=pinned?'★':'☆';
+    b.onclick=()=>togglePin(i);c.appendChild(b);gmGrid.appendChild(c);});}
 $('#gmClose').onclick=closeGrimoire;
 
 /* ---------- écran titre ---------- */
@@ -2335,7 +2339,8 @@ if(location.search.indexOf('dbg')>=0)window.E={
   clearFoes:()=>{enemies.length=0;},incant:(v,kind)=>{S.incant=v;if(kind)S.incantKind=kind;},awave:n=>{S.awave=n;S.awaveOn=true;},
   pick:n=>{const b=document.querySelectorAll('#dCh button');if(b[n])b[n].click();},
   foes:()=>enemies.filter(e=>!e.dead).map(e=>({nm:e.def.nm,mfinal:!!e.mfinal,hp:e.hp})),
-  learn:i=>learn(i)};
+  learn:i=>learn(i),raw:()=>enemies,mk:(kind,x,y,extra)=>mkEnemy(kind,x,y,extra),inSafe:(x,y)=>inSafe(x,y),
+  xpAt:(lvl,amt)=>{S.lvl=lvl;S.xp=0;gainXp(amt);return S.xp;},pinDivine:k=>pinDivine(k)};
 })();
 </script>
 </body>

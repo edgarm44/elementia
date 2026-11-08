@@ -13,9 +13,8 @@ Ouvre `index.html` dans un navigateur. Rien à installer.
 | ZQSD / WASD / flèches | se déplacer |
 | Souris | viser |
 | Clic gauche / Espace | coup d'épée |
-| 1 à 9, 0 | les dix sorts épinglés dans ta barre |
-| B | ouvrir le grimoire, pour choisir tes dix sorts favoris parmi les vingt-quatre du clan |
-| R, T, F, G, V | pouvoirs divins, un par pacte scellé avec ton dieu |
+| 1 à 9, 0 | les dix sorts (et pouvoirs divins) épinglés dans ta barre |
+| B | ouvrir le grimoire, pour choisir tes dix favoris parmi tes pouvoirs, sorts du clan comme pouvoirs divins |
 | E | parler, prendre un objet, utiliser un portail |
 | M | monture |
 | H | aide et sauvegarde |
