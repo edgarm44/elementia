@@ -15,8 +15,9 @@ Ouvre `index.html` dans un navigateur. Rien à installer.
 | Clic gauche / Espace | coup d'épée |
 | 1 à 9, 0 | les dix sorts (et pouvoirs divins) épinglés dans ta barre |
 | B | ouvrir le grimoire, pour choisir tes dix favoris parmi tes pouvoirs, sorts du clan comme pouvoirs divins |
+| K | ouvrir l'arbre de talents |
 | E | parler, prendre un objet, utiliser un portail |
-| M | monture |
+| M | monture, puis vol une fois débloqué |
 | H | aide et sauvegarde |
 
 Sur tablette : joystick à gauche, boutons à droite, livre pour le grimoire.
@@ -34,9 +35,11 @@ Chaque clan supporte son propre terrain : la lave ne brûle pas le clan du feu, 
 
 ## Les pouvoirs
 
-Chaque clan possède vingt-quatre pouvoirs. Atteindre le niveau ne suffit pas : il faut trouver le maître qui enseigne le sort. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même. Le grimoire (touche B) permet d'épingler jusqu'à dix de ces pouvoirs dans la barre rapide, sans avoir à cliquer de page en page.
+Chaque clan possède vingt-six pouvoirs. Atteindre le niveau ne suffit pas : il faut trouver le maître qui enseigne le sort. Les deux premiers viennent du village, les suivants des maîtres des quatre cités, de Maître Oryn à Astralis, puis de l'empereur Valerian lui-même. Le grimoire (touche B) permet d'épingler jusqu'à dix de ces pouvoirs dans la barre rapide, sans avoir à cliquer de page en page.
 
-À cela s'ajoutent jusqu'à cinq pouvoirs divins, scellés en deux pactes avec le dieu de ton clan : un seul pouvoir au premier pacte, puis quatre de plus, arrachés de force au second.
+À cela s'ajoutent jusqu'à cinq pouvoirs divins choisis parmi huit, scellés en deux pactes avec le dieu de ton clan : un seul pouvoir au premier pacte — qui t'offre aussi le vol —, puis quatre de plus, arrachés de force au second.
+
+Dès le début, l'arbre de talents (touche K) permet de dépenser les orbes gagnées au combat et en mission dans trois voies de progression permanentes — vitalité, puissance, résistance — par paliers de plus en plus coûteux.
 
 ## Sauvegarde
 
