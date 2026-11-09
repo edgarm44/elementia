@@ -540,13 +540,13 @@ const NSP=28,NDIV=5,DIV=NSP,MAXSP=NSP+NDIV,PER=10;
 const nPagesBar=()=>Math.ceil(MAXSP/PER);
 
 const EDEF={
-  scout:{hp:30,sp:120,dmg:8,r:11,xp:11,orb:2,nm:'Éclaireur oublié'},
-  hound:{hp:24,sp:215,dmg:9,r:10,xp:13,orb:2,nm:'Chien des Oubliés'},
-  mage:{hp:30,sp:85,dmg:11,r:11,xp:17,orb:3,nm:'Mage noir',ranged:1},
-  knight:{hp:130,sp:95,dmg:15,r:15,xp:30,orb:5,nm:'Chevalier déchu',armor:.65},
-  brute:{hp:170,sp:78,dmg:20,r:18,xp:36,orb:7,nm:'Brute démoniaque'},
-  golem:{hp:46,sp:0,dmg:0,r:16,xp:6,orb:0,nm:'Golem',passive:1},
-  boss:{hp:2400,sp:100,dmg:24,r:26,xp:700,orb:150,nm:'Vexor, lieutenant de Malvorn',boss:1}
+  scout:{hp:55,sp:120,dmg:11,r:11,xp:11,orb:2,nm:'Éclaireur oublié'},
+  hound:{hp:45,sp:215,dmg:12,r:10,xp:13,orb:2,nm:'Chien des Oubliés'},
+  mage:{hp:55,sp:85,dmg:15,r:11,xp:17,orb:3,nm:'Mage noir',ranged:1},
+  knight:{hp:190,sp:95,dmg:20,r:15,xp:30,orb:5,nm:'Chevalier déchu',armor:.65},
+  brute:{hp:260,sp:78,dmg:28,r:18,xp:36,orb:7,nm:'Brute démoniaque'},
+  golem:{hp:70,sp:0,dmg:0,r:16,xp:6,orb:0,nm:'Golem',passive:1},
+  boss:{hp:2400,sp:100,dmg:30,r:26,xp:700,orb:150,nm:'Vexor, lieutenant de Malvorn',boss:1}
 };
 
 /* ---------- visée ---------- */
@@ -883,7 +883,12 @@ function teachLabel(sp){const t=teacherOf(sp);
 
 /* ---------- combat ---------- */
 function mkEnemy(type,x,y,extra={}){const d=EDEF[type];const mul=(type==='golem'||type==='boss'||extra.tuto)?1:(1+(S.lvl-1)*0.17);
-  const e=Object.assign({type,def:d,x,y,r:d.r,hp:d.hp*mul,maxHp:d.hp*mul,kvx:0,kvy:0,stun:0,frost:0,burn:0,burnAcc:0,
+  // les ennemis "d'élite" (crises, gardiens de quête) sont nettement plus coriaces que la patrouille sauvage de même niveau :
+  // bien plus de points de vie et des coups qui comptent vraiment, pour que l'empire ait de vraies menaces à affronter.
+  // NB : hurt() applique déjà une mise à l'échelle au niveau du joueur sur les dégâts reçus, donc on ne la duplique pas ici -
+  // seul le multiplicateur d'élite agit sur les dégâts de base, pour éviter un double scaling écrasant
+  const em=extra.eliteMul||1;
+  const e=Object.assign({type,def:d,x,y,r:d.r,hp:d.hp*mul*em,maxHp:d.hp*mul*em,dmg:Math.round(d.dmg*em),kvx:0,kvy:0,stun:0,frost:0,burn:0,burnAcc:0,
     cd:rnd(.6,1.6),atk:0,flash:0,dead:false,phase:1,walk:Math.random()*6,slow:1,face:0,home:{x,y}},extra);
   if(extra.hp)e.maxHp=extra.hp;enemies.push(e);return e;}
 function hit(e,dmg,a,o={}){if(e.dead)return;dmg=Math.max(1,Math.round(dmg*(0.9+Math.random()*0.2)*(e.def.armor||1)));
@@ -1035,11 +1040,13 @@ function afterMaster(m){
 function usePortal(id){
   const dests=Object.keys(PORTALS).filter(k=>k!==id&&S.disc[k]);
   if(!dests.length){say([{text:'Le portail s\'illumine, mais tu n\'as encore découvert aucune autre destination.'}]);return;}
-  say([{text:'Le portail d\'Élémentia. Où veux-tu aller ?',choices:dests.map(k=>({
+  const choices=dests.map(k=>({
     label:k==='capital'?'Astralis (capitale)':CLANS[k].city,
     sub:k==='capital'?'Le palais, l\'arène, Maître Oryn':CLANS[k].biome,
     fn:()=>{const p=PORTALS[k];P.x=p.x;P.y=p.y+T;P.inv=1.5;cam.x=P.x-VW/ZOOM/2;cam.y=P.y-VH/ZOOM/2;
-      burst(P.x,P.y,'#e6c46a',30,240);showBanner(k==='capital'?'Astralis':CLANS[k].city,'Tu franchis le portail',2);save();}}))}]);}
+      burst(P.x,P.y,'#e6c46a',30,240);showBanner(k==='capital'?'Astralis':CLANS[k].city,'Tu franchis le portail',2);save();}}));
+  choices.push({label:'Rester ici',sub:'Fermer le portail sans partir',fn:()=>{}});
+  say([{text:'Le portail d\'Élémentia. Où veux-tu aller ?',choices}]);}
 function takeSword(){S.quest='_';S.sword=true;
   say([{text:'Sous une bâche, dans la remise du hameau, une épée dort depuis des années. La poignée est froide.'},
        {who:'Le forgeron',text:'Trois hommes ont essayé de la soulever. Trois. Elle n\'a pas bougé d\'un pouce. Vas-y, essaie, ça me fera une histoire à raconter.'},
@@ -1251,7 +1258,7 @@ const WORKPOS={statue:STATUE,jardins:GARDENS,fontaine:FOUNTAIN,observatoire:OBSE
 function spawnCrisisCamp(x,y,mix){let gi=0;
   for(const type in mix)for(let k=0;k<mix[type];k++){const a=(gi++)*(TAU/7)+rnd(-.2,.2),d=rnd(40,110);
     const sx=x+Math.cos(a)*d,sy=y+Math.sin(a)*d;
-    mkEnemy(type,blocked(sx,sy,18)?x:sx,blocked(sx,sy,18)?y:sy,{crisis:true});}
+    mkEnemy(type,blocked(sx,sy,18)?x:sx,blocked(sx,sy,18)?y:sy,{crisis:true,eliteMul:3});}
   showBanner('Troupes en approche !','Des ennemis sont apparus non loin - fonce les affronter pour un gros butin',3.6);}
 const CRISES=[
   {id:'rebellion',prompt:'Une rébellion éclate à Pyros, menée par un noble mécontent de ton règne.',
@@ -1358,7 +1365,7 @@ function openCouncil(){
       if(o.effect){S.council=S.council||{};S.council[o.effect]=true;
         burst(COUNCIL.x,COUNCIL.y,'#e6c46a',40,280);}
       if(o.apply)o.apply();
-      showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);
+      showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes`,3.4);save();}}))}]);
     return;}
   // toutes les grandes décisions sont prises : le règne continue pour de vrai, et pour longtemps -
   // affaires courantes au hasard + grands travaux financés librement, tant que tu es empereur
@@ -1369,7 +1376,7 @@ function openCouncil(){
     choices.push({label:'Rumeur : '+q.name,sub:q.rumor,fn:()=>startEquest(id)});}
   for(const w of works.slice(0,3))choices.push({label:'Chantier : '+w.n,sub:`${w.sub} · -${w.cost} orbes`,fn:()=>buildWork(w)});
   choices.push({label:'Rien pour l\'instant',sub:'Revenir plus tard',fn:()=>{}});
-  say([{who:'Maître Oryn',text:`Le royaume t'attend, ${N()}${S.title?', '+S.title:''}. Que veux-tu faire ?`,choices}]);}
+  say([{who:'Maître Oryn',text:`Le royaume t'attend, ${N()}. Que veux-tu faire ?`,choices}]);}
 function openAffair(){
   // ~1 affaire sur 5 est une grande crise, bien plus lourde de conséquences (et parfois de vrais ennemis à combattre)
   const pool=RECURRING_AFFAIRS.filter(a=>!a.cond||a.cond());
@@ -1381,7 +1388,7 @@ function openAffair(){
     S.lastAffair=a.id;const amt=Math.round(base*o.mul*(o.mul>0?(S.taxMul||1):1));S.orbes=Math.max(0,S.orbes+amt);S.title=o.title;
     if(o.apply)o.apply();
     S.affairsDone=(S.affairsDone||0)+1;
-    showBanner('Décision prise',`${amt>=0?'+':''}${amt} orbes · on te surnomme désormais ${o.title}`,3.4);save();}}))}]);}
+    showBanner('Décision prise',`${amt>=0?'+':''}${amt} orbes`,3.4);save();}}))}]);}
 function buildWork(w){
   if((S.orbes||0)<w.cost){showBanner(w.n,`Pas assez d'orbes (${S.orbes} / ${w.cost})`,2.4);return;}
   S.orbes-=w.cost;S.works=S.works||{};S.works[w.id]=true;
@@ -1417,7 +1424,7 @@ function equestsTick(){if(!S||!S.equests)return;
     if(!eq.spawned){if(dist(P.x,P.y,pt.x,pt.y)<16*T){eq.spawned=true;
       for(const[type,k]of q.guard()){const a=k*0.9,d=70;
         mkEnemy(type,blocked(pt.x+Math.cos(a)*d,pt.y+Math.sin(a)*d,18)?pt.x:pt.x+Math.cos(a)*d,
-          blocked(pt.x+Math.cos(a)*d,pt.y+Math.sin(a)*d,18)?pt.y:pt.y+Math.sin(a)*d,{equest:id});}
+          blocked(pt.x+Math.cos(a)*d,pt.y+Math.sin(a)*d,18)?pt.y:pt.y+Math.sin(a)*d,{equest:id,eliteMul:4});}
       showBanner(q.name,q.fightBanner,3.4);}}
     else if(!enemies.some(e=>!e.dead&&e.equest===id)){eq.stage=2;q.reward();
       burst(pt.x,pt.y,'#e6c46a',40,300);showBanner(q.doneBanner[0]||q.name,q.doneBanner[1]||'',3.6);save();}}}
@@ -1563,9 +1570,9 @@ function questText(){if(!S)return'';
     case 'gods':{const l=godShrineLeft();return 'Scelle un pacte avec les autres dieux : '+l.map(k=>CLANS[k].god.split(',')[0]).join(', ')+'.';}
     case 'end':return 'Malvorn est tombé, les quatre dieux t\'ont béni, et le trône d\'Astralis t\'attend. Suite au prochain chapitre.';
     case 'reign':{const left=DECISIONS.filter(d=>!(S.decisions||[]).includes(d.id)).length;
-      if(left)return `Tu règnes sur Astralis${S.title?', '+S.title:''}. Le conseil, à l'ouest de la guilde, a ${left} affaire(s) à régler.`;
+      if(left)return `Tu règnes sur Astralis. Le conseil, à l'ouest de la guilde, a ${left} affaire(s) à régler.`;
       const w=GREATWORKS.filter(x=>!(S.works||{})[x.id]).length;
-      return `Tu règnes sur Astralis${S.title?', '+S.title:''}. Le conseil a toujours une affaire ou un chantier pour toi`+(w?` (${w} grand(s) travaux possibles)`:'')+'.';}
+      return `Tu règnes sur Astralis. Le conseil a toujours une affaire ou un chantier pour toi`+(w?` (${w} grand(s) travaux possibles)`:'')+'.';}
     case 'free':{const p=L.findIndex((s,i)=>!S.learned[i]);
       return p>=0?`${L[p].n} : ${S.lvl>=L[p].lvl?'va voir '+teachLabel(L[p]):'niveau '+L[p].lvl+' requis'}.`
         :'Tu maîtrises les vingt-six pouvoirs de ton clan. Continue l\'histoire jusqu\'au bout pour affronter Malvorn.';}
@@ -1927,16 +1934,16 @@ function update(dt){
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
       if(e.def.ranged){if(d>300){mx=dx/d;my=dy/d;}else if(d<190){mx=-dx/d;my=-dy/d;}else{mx=-dy/d*.6;my=dx/d*.6;}
-        if(e.cd<=0&&d<520){e.cd=1.8;eshoot(e,Math.atan2(dy,dx),320,11);}}
+        if(e.cd<=0&&d<520){e.cd=1.8;eshoot(e,Math.atan2(dy,dx),320,e.dmg);}}
       else{if(d>e.r+P.r+2){mx=dx/d;my=dy/d;}
-        if(d<e.r+P.r+10&&e.atk<=0){e.atk=e.type==='hound'?.8:1.1;hurt(e.def.dmg);e.lunge=.15;}}
+        if(d<e.r+P.r+10&&e.atk<=0){e.atk=e.type==='hound'?.8:1.1;hurt(e.dmg||e.def.dmg);e.lunge=.15;}}
       if(e.def.boss){
         if(e.phase===1&&e.hp<e.maxHp*.5){e.phase=2;e.r=32;
           showBanner('Vexor libère le pouvoir du diable','Sa forme démoniaque est plus rapide et plus brutale');shake(16,.7);burst(e.x,e.y,'#ff3355',50,340);}
         e.bcd=(e.bcd??2)-dt;
         if(e.bcd<=0){const a=Math.atan2(dy,dx);
-          if(e.phase===1){for(let k=-2;k<=2;k++)eshoot(e,a+k*.18,330,13);e.bcd=2.4;}
-          else{for(let k=0;k<16;k++)eshoot(e,k/16*TAU+time,300,13);eshoot(e,a,440,18);e.bcd=1.7;}}}}
+          if(e.phase===1){for(let k=-2;k<=2;k++)eshoot(e,a+k*.18,330,Math.round(e.dmg*.55));e.bcd=2.4;}
+          else{for(let k=0;k<16;k++)eshoot(e,k/16*TAU+time,300,Math.round(e.dmg*.55));eshoot(e,a,440,Math.round(e.dmg*.75));e.bcd=1.7;}}}}
     else{ // hors de portée : il patrouille autour de son point d'apparition
       const hd=dist(e.x,e.y,e.home.x,e.home.y);
       if(hd>200){mx=(e.home.x-e.x)/hd;my=(e.home.y-e.y)/hd;e.face=Math.atan2(my,mx);}
@@ -2273,33 +2280,50 @@ function drawWallTowers(){for(const t of WALLTOWERS){
   ctx.fillStyle='#6f6a5e';poly([[t.x-18,t.y-50],[t.x,t.y-70],[t.x+18,t.y-50]]);
   ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#e6c46a',.22+Math.sin(time*1.6+t.x)*.08);circ(t.x,t.y-58,4);
   ctx.globalCompositeOperation='source-over';}}
-// le grand marché commun (décision "commerce")
+// le grand marché commun (décision "commerce") - une vraie place pavée avec étals et marchands, posée au sol
 function drawMarket(){const x=MARKET.x,y=MARKET.y;
-  softShadow(x,y+22,78,16,.26);
-  for(let k=0;k<5;k++){const sx=x-72+k*36,cols=['#e05a4a','#4aa0e0','#e0c04a','#6aa86a','#c46ae0'];
-    ctx.fillStyle=cols[k%cols.length];ctx.beginPath();ctx.moveTo(sx-16,y-6);ctx.lineTo(sx,y-30);ctx.lineTo(sx+16,y-6);ctx.fill();
-    ctx.fillStyle='#8a7a5e';ctx.fillRect(sx-14,y-6,28,16);
-    ctx.fillStyle=shade(cols[k%cols.length],0.25);ctx.beginPath();ctx.moveTo(sx-16,y-6);ctx.lineTo(sx,y-18);ctx.lineTo(sx+16,y-6);ctx.fill();}
-  bigLabel(x,y-48,'Marché commun','#e6c46a',18);}
-// la grande bibliothèque (décision "bibliothèque")
+  softShadow(x,y+14,92,20,.3);
+  ctx.fillStyle='#b7a77c';ctx.beginPath();ctx.ellipse(x,y+6,92,26,0,0,TAU);ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=1;
+  for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(x+k*22,y-14);ctx.lineTo(x+k*22,y+22);ctx.stroke();}
+  for(let k=0;k<5;k++){const sx=x-72+k*36,sy=y-2,cols=['#e05a4a','#4aa0e0','#e0c04a','#6aa86a','#c46ae0'];
+    ctx.fillStyle='#8a7a5e';ctx.fillRect(sx-15,sy-16,30,18);
+    ctx.fillStyle=shade('#8a7a5e',-0.2);ctx.fillRect(sx-15,sy,30,2);
+    ctx.fillStyle=cols[k%cols.length];ctx.beginPath();ctx.moveTo(sx-19,sy-14);ctx.lineTo(sx,sy-34);ctx.lineTo(sx+19,sy-14);
+    ctx.lineTo(sx+19,sy-22);ctx.lineTo(sx,sy-40);ctx.lineTo(sx-19,sy-22);ctx.closePath();ctx.fill();
+    ctx.fillStyle=shade(cols[k%cols.length],-0.25);ctx.fillRect(sx-19,sy-22,38,3);
+    ctx.fillStyle='#5a4c38';ctx.fillRect(sx-16,sy-16,2,18);ctx.fillRect(sx+14,sy-16,2,18);
+    if(k%2===0)drawPerson(sx+rnd(-6,6),sy+18,{s:.68,face:Math.PI/2,body:cols[(k+2)%cols.length],trim:'#5a4c38',skin:'#e3bd98',hair:'#3a2e20'});}
+  bigLabel(x,y-54,'Marché commun','#e6c46a',18);}
+// la grande bibliothèque (décision "bibliothèque") - perron, colonnade et fronton, comme le temple/l'académie
 function drawLibrary(){const x=LIBRARY.x,y=LIBRARY.y;
-  softShadow(x,y+26,54,13,.28);
-  ctx.fillStyle='#7a6a52';ctx.fillRect(x-50,y-50,100,54);
-  ctx.fillStyle=shade('#7a6a52',0.2);ctx.fillRect(x-50,y-50,100,6);
-  for(let k=0;k<5;k++){ctx.fillStyle='#352a1e';ctx.fillRect(x-42+k*18,y-38,4,30);}
-  ctx.fillStyle='#4a3d2c';poly([[x-54,y-50],[x,y-80],[x+54,y-50]]);
-  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#9fd9ff',.18+Math.sin(time*1.8)*.06);circ(x,y-62,10);
+  softShadow(x,y+22,70,18,.3);
+  ctx.fillStyle='#cabf9e';ctx.beginPath();ctx.ellipse(x,y+10,68,24,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#8a7a5e';ctx.fillRect(x-56,y-6,112,16);
+  ctx.fillStyle='#7a6a52';ctx.fillRect(x-50,y-54,100,52);
+  ctx.fillStyle=shade('#7a6a52',0.2);ctx.fillRect(x-50,y-54,100,6);
+  for(let k=0;k<6;k++){const px=x-42+k*17;
+    ctx.fillStyle='#e8ddbd';ctx.fillRect(px-4,y-48,8,42);
+    ctx.fillStyle=shade('#e8ddbd',-0.15);ctx.fillRect(px-4,y-48,2,42);}
+  ctx.fillStyle='#4a3d2c';poly([[x-58,y-54],[x,y-88],[x+58,y-54]]);
+  ctx.fillStyle=shade('#4a3d2c',0.22);poly([[x-58,y-54],[x,y-88],[x-8,y-82]]);
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#9fd9ff',.2+Math.sin(time*1.8)*.07);circ(x,y-66,11);
   ctx.globalCompositeOperation='source-over';
-  bigLabel(x,y-92,'Grande bibliothèque','#9fd9ff',18);}
-// l'hôtel de la monnaie impériale (décision "monnaie")
+  bigLabel(x,y-100,'Grande bibliothèque','#9fd9ff',18);}
+// l'hôtel de la monnaie impériale (décision "monnaie") - socle de pierre, colonnes et fronton doré, comme les autres grands bâtiments
 function drawMint(){const x=MINT.x,y=MINT.y;
-  softShadow(x,y+24,52,12,.28);
-  ctx.fillStyle='#6a5a3a';ctx.fillRect(x-46,y-42,92,46);
-  ctx.fillStyle=shade('#6a5a3a',0.22);ctx.fillRect(x-46,y-42,92,6);
-  ctx.fillStyle='#e6c46a';poly([[x-50,y-42],[x,y-70],[x+50,y-42]]);
+  softShadow(x,y+18,64,16,.3);
+  ctx.fillStyle='#b7a77c';ctx.beginPath();ctx.ellipse(x,y+8,62,20,0,0,TAU);ctx.fill();
+  ctx.fillStyle='#8a7a5e';ctx.fillRect(x-50,y-2,100,12);
+  ctx.fillStyle='#6a5a3a';ctx.fillRect(x-46,y-46,92,46);
+  ctx.fillStyle=shade('#6a5a3a',0.22);ctx.fillRect(x-46,y-46,92,6);
+  for(let k=0;k<4;k++){const px=x-32+k*21.5;
+    ctx.fillStyle='#e6c46a';ctx.fillRect(px-4,y-40,8,36);ctx.fillStyle=shade('#e6c46a',-0.15);ctx.fillRect(px-4,y-40,2,36);}
+  ctx.fillStyle='#e6c46a';poly([[x-50,y-46],[x,y-76],[x+50,y-46]]);
+  ctx.fillStyle=shade('#e6c46a',0.25);poly([[x-50,y-46],[x,y-76],[x-8,y-70]]);
   for(let k=0;k<3;k++){ctx.globalCompositeOperation='lighter';
-    ctx.fillStyle=rgba('#ffe04a',.3+Math.sin(time*2.4+k)*.1);circ(x-20+k*20,y-14,6);ctx.globalCompositeOperation='source-over';}
-  bigLabel(x,y-80,'Hôtel de la Monnaie','#e6c46a',18);}
+    ctx.fillStyle=rgba('#ffe04a',.3+Math.sin(time*2.4+k)*.1);circ(x-20+k*20,y-16,6);ctx.globalCompositeOperation='source-over';}
+  bigLabel(x,y-88,'Hôtel de la Monnaie','#e6c46a',18);}
 /* ---------- grands travaux : chantiers libres financés depuis le conseil ---------- */
 function drawStatue(){const x=STATUE.x,y=STATUE.y;
   softShadow(x,y+22,30,10,.3);
@@ -2815,13 +2839,9 @@ function panel(x,y,w,h){ctx.fillStyle='rgba(12,15,30,.78)';rrect(x,y,w,h,10);ctx
 function drawHUD(){const C=CL(),compact=VW<620,L=12+INS.l,Tp=12+INS.t,pw=compact?210:276;
   ctx.textBaseline='alphabetic';ctx.textAlign='left';
   panel(L,Tp,pw,compact?82:94);
-  ctx.font=`700 12px ${FB}`;const clanTxt='Clan '+GEN[S.clan],clanW=ctx.measureText(clanTxt).width;
-  let nameTxt=S.title?S.name+', '+S.title:S.name,fs=compact?17:20,avail=pw-24-clanW-10;
-  ctx.font=`700 ${fs}px ${FD}`;
-  while(fs>11&&ctx.measureText(nameTxt).width>avail){fs-=1;ctx.font=`700 ${fs}px ${FD}`;}
-  while(ctx.measureText(nameTxt).width>avail&&nameTxt.length>3){nameTxt=nameTxt.slice(0,-2)+'…';}
-  ctx.fillStyle='#ede6d3';ctx.fillText(nameTxt,L+12,Tp+24);
-  ctx.font=`700 12px ${FB}`;ctx.fillStyle=C.col;ctx.textAlign='right';ctx.fillText(clanTxt,L+pw-12,Tp+22);ctx.textAlign='left';
+  ctx.font=`700 ${compact?17:20}px ${FD}`;ctx.fillStyle='#ede6d3';
+  ctx.fillText(S.name,L+12,Tp+24);
+  ctx.font=`700 12px ${FB}`;ctx.fillStyle=C.col;ctx.textAlign='right';ctx.fillText('Clan '+GEN[S.clan],L+pw-12,Tp+22);ctx.textAlign='left';
   const bw=pw-24,by=Tp+34;
   ctx.fillStyle='rgba(0,0,0,.5)';rrect(L+12,by,bw,13,4);ctx.fill();
   ctx.fillStyle='#d8404f';rrect(L+12,by,Math.max(0,bw*P.hp/P.maxHp),13,4);ctx.fill();
