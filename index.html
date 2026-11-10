@@ -9,7 +9,9 @@ body{margin:0;font:14px system-ui,sans-serif}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
+<meta charset="utf-8">
 <title>Élémentia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +25,9 @@ img{max-width:100%}
   color-scheme:dark;
 }
 [hidden]{display:none!important}
-html,body{height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;overflow:hidden;-webkit-user-select:none;user-select:none}
+html,body{height:100%;overscroll-behavior:none}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;overflow:hidden;-webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent}
 #cv{position:fixed;inset:0;display:block;touch-action:none;outline:none;cursor:none}
 .overlay{position:fixed;inset:0;overflow-y:auto;display:flex;justify-content:center;align-items:flex-start;
   padding-top:max(20px,env(safe-area-inset-top,0px));padding-bottom:max(20px,env(safe-area-inset-bottom,0px));
