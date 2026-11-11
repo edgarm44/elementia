@@ -915,7 +915,7 @@ function hit(e,dmg,a,o={}){if(e.dead)return;dmg=Math.max(1,Math.round(dmg*(0.9+M
   if(o.burn)e.burn=Math.max(e.burn,o.burn);
   fx.push({k:'num',x:e.x+rnd(-6,6),y:e.y-e.r-14,v:dmg,t:0,life:.8,col:o.col||'#ffffff'});
   if(e.hp<=0)kill(e);}
-function kill(e){e.dead=true;burst(e.x,e.y,e.def.boss?'#ff3355':'#a35cff',e.def.boss?60:16,e.def.boss?340:170);
+function kill(e){e.dead=true;if(e.devilBoss)devilSlain=true;burst(e.x,e.y,e.def.boss?'#ff3355':'#a35cff',e.def.boss?60:16,e.def.boss?340:170);
   gainXp(e.def.xp);
   for(let i=0;i<Math.ceil(e.def.orb/2);i++)pickups.push({k:'orb',x:e.x+rnd(-8,8),y:e.y+rnd(-8,8),vx:rnd(-90,90),vy:rnd(-90,90),v:2});
   if(e.def.orb&&Math.random()<.12)pickups.push({k:'heart',x:e.x,y:e.y,vx:rnd(-60,60),vy:rnd(-60,60),v:Math.round(P.maxHp*.25)});
@@ -1492,7 +1492,7 @@ const EQUESTS={
 const DEVIL_WORKS=6;
 function worksDone(){return GREATWORKS.filter(w=>(S.works||{})[w.id]).length;}
 function devilUnlocked(){return!!(S.emperor&&worksDone()>=DEVIL_WORKS);}
-let devilWaitT=-1;
+let devilWaitT=-1,devilSlain=false,devilAddT=0;
 function startDevilCh(){S.devilStarted=true;
   say([{who:'???',text:'Je t\'entends penser, petit empereur. Tant de pouvoir amassé... et pourtant tu ne sais rien du vrai prix du pouvoir.'},
     {who:'???',text:'Je suis Mal\'Zaroth. Les quatre dieux de ce monde m\'ont scellé sous ta capitale il y a des siècles, par peur. Le sceau craque enfin.'},
@@ -1513,10 +1513,26 @@ function devilTick(dt){if(!S||S.devilDone)return;
     if(devilWaitT<=0){devilWaitT=-1;shake(10,.6);startDevilCh();}
     return;}
   if(!S.devilSpawned){
-    if(dist(P.x,P.y,DEVILSEAL.x,DEVILSEAL.y)<16*T){S.devilSpawned=true;
+    // le combat se livre hors des remparts : il faut être sorti du dôme et proche de la fissure
+    if(dist(P.x,P.y,DEVILSEAL.x,DEVILSEAL.y)<12*T&&!inSafe(P.x,P.y)){S.devilSpawned=true;devilSlain=false;devilAddT=6;
       const e=mkEnemy('devil',DEVILSEAL.x,DEVILSEAL.y,{devilBoss:true});e.hp=e.maxHp=EDEF.devil.hp;
-      showBanner('Mal\'Zaroth se dresse',(S.devilPact?'« Prouve-le, alors. »':'« Puisque tu le veux. »')+' Sa forme emplit tout le ciel.',4.4);shake(14,.8);save();}}
-  else if(!enemies.some(e=>!e.dead&&e.devilBoss)){S.devilDone=true;
+      showBanner('Mal\'Zaroth se dresse',(S.devilPact?'« Prouve-le, alors. »':'« Puisque tu le veux. »')+' Sa forme emplit tout le ciel.',4.4);shake(14,.8);save();}
+    return;}
+  const boss=enemies.find(e=>!e.dead&&e.devilBoss);
+  if(boss){
+    // ses serviteurs surgissent de la fissure par vagues, plus nombreux quand il se déchaîne
+    if(dist(P.x,P.y,boss.x,boss.y)<1400){devilAddT-=dt||0;
+      if(devilAddT<=0){devilAddT=boss.phase===2?14:20;
+        const mix=boss.phase===2?['brute','knight','knight','mage','hound']:['knight','mage','hound'];
+        mix.forEach((t,k)=>{const a=k/mix.length*TAU+rnd(-.3,.3),dd=rnd(90,160);
+          const sx=boss.x+Math.cos(a)*dd,sy=boss.y+Math.sin(a)*dd;
+          mkEnemy(t,blocked(sx,sy,18)?boss.x:sx,blocked(sx,sy,18)?boss.y:sy,{devilAdd:true,eliteMul:3});});
+        burst(boss.x,boss.y,'#8a3cff',30,260);showBanner('Les serviteurs du pacte','Des démons jaillissent de la fissure',2.2);}}
+    return;}
+  if(!devilSlain){ // il a disparu sans être abattu (joueur parti trop loin, portail, rechargement) : il retourne dans la fissure
+    S.devilSpawned=false;for(const e of enemies)if(e.devilAdd)e.dead=true;
+    showBanner('Mal\'Zaroth s\'est retiré','Il t\'attend toujours dans la fissure, sous Astralis',3);return;}
+  {S.devilDone=true;for(const e of enemies)if(e.devilAdd&&!e.dead)kill(e);
     S.orbes+=1200;
     if(S.devilPact){S.relicBonus=(S.relicBonus||0)+0.15;S.title='Celui qui a pactisé';}
     else{S.shop=S.shop||{atk:0,hp:0,def:0};S.shop.def=Math.min(8,(S.shop.def||0)+2);S.title='Celui qui a tenu le sceau';}
@@ -1884,6 +1900,9 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.libUses=typeof d.libUses==='number'?d.libUses:0;
   S.mintLast=typeof d.mintLast==='number'?d.mintLast:S.play;
   S.devilStarted=!!d.devilStarted;S.devilDone=!!d.devilDone;S.devilPact=!!d.devilPact;
+  // correctif : une ancienne version déclarait Mal'Zaroth vaincu dès qu'il disparaissait (joueur trop loin, portail...) -
+  // ces fausses victoires sont annulées une fois, pour pouvoir livrer le vrai combat
+  if(S.devilDone&&!d.devilFix){S.devilDone=false;S.devilStarted=true;}
   S.devilSpawned=false; // le démon lui-même n'est jamais sauvegardé : s'il n'est pas vaincu, il réapparaîtra à l'approche
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
@@ -1916,7 +1935,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,talents:S.talents,
   decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,taxMul:S.taxMul,equests:S.equests,relicBonus:S.relicBonus,
   shop:S.shop,libUses:S.libUses,mintLast:S.mintLast,
-  devilStarted:S.devilStarted,devilDone:S.devilDone,devilPact:S.devilPact,
+  devilStarted:S.devilStarted,devilDone:S.devilDone,devilPact:S.devilPact,devilFix:true,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -2053,9 +2072,9 @@ function update(dt){
     if(e.kvx||e.kvy){moveEnt(e,e.kvx*dt,e.kvy*dt);const f=Math.exp(-8*dt);e.kvx*=f;e.kvy*=f;if(Math.abs(e.kvx)<2)e.kvx=0;if(Math.abs(e.kvy)<2)e.kvy=0;}
     if(e.def.passive)continue;
     const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;
-    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&!e.crisis&&!e.equest&&d>2600){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&!e.crisis&&!e.equest&&!e.devilBoss&&!e.devilAdd&&d>2600){e.dead=true;continue;}
     // garde-fou : un Oublié ne doit jamais se trouver sous un dôme protégé hors d'un assaut scénarisé
-    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&!e.crisis&&!e.equest&&inSafe(e.x,e.y)){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&!e.crisis&&!e.equest&&!e.devilBoss&&!e.devilAdd&&inSafe(e.x,e.y)){e.dead=true;continue;}
     if(e.stun>0){e.stun-=dt;e.slow=1;continue;}
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
@@ -2065,7 +2084,7 @@ function update(dt){
         if(d<e.r+P.r+10&&e.atk<=0){e.atk=e.type==='hound'?.8:1.1;hurt(e.dmg||e.def.dmg);e.lunge=.15;}}
       if(e.def.boss){
         if(e.phase===1&&e.hp<e.maxHp*.5){e.phase=2;e.r=32;
-          showBanner('Vexor libère le pouvoir du diable','Sa forme démoniaque est plus rapide et plus brutale');shake(16,.7);burst(e.x,e.y,'#ff3355',50,340);}
+          if(e.devilBoss)showBanner('Mal\'Zaroth se déchaîne','Sa vraie forme se libère : plus rapide, et ses serviteurs affluent');else showBanner('Vexor libère le pouvoir du diable','Sa forme démoniaque est plus rapide et plus brutale');shake(16,.7);burst(e.x,e.y,'#ff3355',50,340);}
         e.bcd=(e.bcd??2)-dt;
         if(e.bcd<=0){const a=Math.atan2(dy,dx);
           if(e.phase===1){for(let k=-2;k<=2;k++)eshoot(e,a+k*.18,330,Math.round(e.dmg*.55));e.bcd=2.4;}
