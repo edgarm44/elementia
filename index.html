@@ -536,7 +536,7 @@ const TALENTS=[{k:'vit',n:'Vitalité',d:'Plus de points de vie maximum',cost:[40
 const talentLvl=k=>(S&&S.talents&&S.talents[k])||0;
 const sc=v=>v*(1+(S.lvl-1)*0.1)*(P.buffT>0?1.6:1)*(S.pact?1.35:1)
   *(1+(blessHas(0)?.25:0)+(blessHas(1)?.25:0))*(1+talentLvl('pow')*0.07);
-const hpMax=l=>Math.round((100+(l-1)*22)*(blessHas(2)?1.25:1)*(1+talentLvl('vit')*0.09));
+const hpMax=l=>Math.round((100+(l-1)*22)*(blessHas(2)?1.25:1)*(1+talentLvl('vit')*0.09)*(1+(S&&S.shop?S.shop.hp*0.05:0)));
 const cdOf=sp=>sp.cd*(blessHas(3)?.8:1)*(1-talentLvl('def')*0.07);
 const xpNeed=l=>24+l*18;
 const NSP=28,NDIV=5,DIV=NSP,MAXSP=NSP+NDIV,PER=10;
@@ -914,7 +914,9 @@ function levelUp(){S.lvl++;P.maxHp=hpMax(S.lvl);P.hp=P.maxHp;
   const L=SPELLS[S.clan];let msg='Tes sorts et ton épée frappent plus fort';
   for(let i=0;i<NSP;i++)if(L[i].lvl===S.lvl&&!S.learned[i]){msg=L[i].n+' est à ta portée · va voir '+teachLabel(L[i]);break;}
   showBanner('Niveau '+S.lvl,msg);ring(P.x,P.y,10,140,'#e6c46a',.7,5);burst(P.x,P.y,'#e6c46a',32,260);}
-function hurt(dmg){if(P.inv>0||P.dead)return;dmg=Math.round(dmg*(1+(S.lvl-1)*0.1)*(P.avatarT>0?.35:1)*(1-talentLvl('def')*0.05));
+function hurt(dmg){if(P.inv>0||P.dead)return;
+  const mit=Math.max(.15,1-talentLvl('def')*0.05-(S.shop?S.shop.def*0.05:0));
+  dmg=Math.round(dmg*(1+(S.lvl-1)*0.1)*(P.avatarT>0?.35:1)*mit);
   if(P.shield>0){const ab=Math.min(P.shield,dmg);P.shield-=ab;dmg-=ab;
     if(dmg<=0){P.inv=.2;ring(P.x,P.y,14,32,CL().glow,.2,3);return;}}
   P.hp-=dmg;P.inv=.5;P.hurtT=.35;shake(5,.2);fx.push({k:'num',x:P.x,y:P.y-34,v:-dmg,t:0,life:.8,col:'#ff5a6a'});
@@ -928,7 +930,7 @@ function die(){const lost=Math.floor(S.orbes/3);S.orbes-=lost;shake(10,.4);
 function swing(){
   if(!S.sword){if(P.swordCd<=0){P.swordCd=1.2;showBanner('Tu n\'as pas d\'arme','Tes poings ne valent rien contre eux : sers-toi de ta magie',1.6);}return;}
   if(P.swordCd>0)return;P.mounted=false;P.flying=false;const a=aimAngle();P.face=a;P.swing=.22;P.swingA=a;P.swordCd=.34;
-  const dmg=sc(13+S.lvl*2.2),o={knock:S.clan==='wind'?380:S.clan==='water'?300:170,col:CL().col};
+  const dmg=sc(13+S.lvl*2.2)*(1+(S.shop?S.shop.atk*0.12:0)),o={knock:S.clan==='wind'?380:S.clan==='water'?300:170,col:CL().col};
   if(S.clan==='elec')o.stun=.45;if(S.clan==='fire')o.burn=2.5;
   for(const e of enemies){if(e.dead)continue;const d=dist(P.x,P.y,e.x,e.y);if(d>70+e.r)continue;
     let da=Math.atan2(e.y-P.y,e.x-P.x)-a;da=Math.atan2(Math.sin(da),Math.cos(da));
@@ -1165,6 +1167,9 @@ function findInteract(){
   if(S.guild!=null&&dist(P.x,P.y,GUILDH.x,GUILDH.y)<90)
     return{k:'board',label:(S.gq&&S.gq.done>=S.gq.need)?'Rendre la mission':S.gq?'Registre de la guilde':'Prendre une mission'};
   if(S.emperor&&dist(P.x,P.y,COUNCIL.x,COUNCIL.y)<90)return{k:'council',label:'Tenir conseil'};
+  if(S.council&&S.council.market&&dist(P.x,P.y,MARKET.x,MARKET.y)<100)return{k:'market',label:'Entrer au marché'};
+  if(S.council&&S.council.library&&dist(P.x,P.y,LIBRARY.x,LIBRARY.y)<90)return{k:'library',label:'Consulter la bibliothèque'};
+  if(S.council&&S.council.mint&&dist(P.x,P.y,MINT.x,MINT.y)<90)return{k:'mint',label:'Entrer à l\'Hôtel de la Monnaie'};
   if(S.quest==='sword'){const v=swordVillage();if(v&&dist(P.x,P.y,v.x*T,v.y*T)<VILR*T*.9)return{k:'sword',label:'Prendre l\'épée'};}
   if(S.incant==null){
     if(S.quest==='pactShrine'){const s=SHRINE[S.clan];if(dist(P.x,P.y,s.x,s.y)<4*T)return{k:'shrine',kind:'pact1',label:'Prononcer l\'incantation'};}
@@ -1180,7 +1185,10 @@ function doInteract(){if(!interact)return;
   else if(interact.k==='sword')takeSword();
   else if(interact.k==='shrine')startIncant(interact.kind);
   else if(interact.k==='board')offerBoard();
-  else if(interact.k==='council')openCouncil();}
+  else if(interact.k==='council')openCouncil();
+  else if(interact.k==='market')openMarket();
+  else if(interact.k==='library')openLibrary();
+  else if(interact.k==='mint')openMint();}
 
 /* ---------- quêtes ---------- */
 function startTuto(){const c=cityPx(S.clan),a=Math.atan2(CAP.y-c.y,CAP.x-c.x);
@@ -1366,6 +1374,7 @@ function openCouncil(){
     say([{who:'Maître Oryn',text:d.prompt,choices:d.options.map(o=>({label:o.label,sub:o.sub,fn:()=>{
       S.decisions.push(d.id);S.orbes=Math.max(0,S.orbes+Math.round(o.orbes*(o.orbes>0?(S.taxMul||1):1)));S.title=o.title;
       if(o.effect){S.council=S.council||{};S.council[o.effect]=true;
+        if(o.effect==='mint')S.mintLast=S.play;
         burst(COUNCIL.x,COUNCIL.y,'#e6c46a',40,280);}
       if(o.apply)o.apply();
       showBanner('Décision prise',`${o.orbes>=0?'+':''}${o.orbes} orbes`,3.4);save();}}))}]);
@@ -1397,6 +1406,37 @@ function buildWork(w){
   S.orbes-=w.cost;S.works=S.works||{};S.works[w.id]=true;
   const p=WORKPOS[w.id]||COUNCIL;burst(p.x,p.y,'#e6c46a',44,300);
   showBanner(w.n+' achevé','-'+w.cost+' orbes',3.2);save();}
+/* ---------- le marché, la bibliothèque, l'Hôtel de la Monnaie : trois lieux hors du conseil ---------- */
+const SHOP_ITEMS=[
+  {id:'atk',nm:'Lame forgée à Astralis',base:70,d:'+12% de dégâts à l\'épée par cran'},
+  {id:'hp',nm:'Entraînement de la garde',base:60,d:'+5% de points de vie max par cran'},
+  {id:'def',nm:'Armure du marché',base:65,d:'-5% de dégâts reçus par cran (jusqu\'à 40%)'}];
+function shopCost(id){return Math.round(SHOP_ITEMS.find(i=>i.id===id).base*Math.pow(1.55,S.shop[id]||0));}
+function openMarket(){S.shop=S.shop||{atk:0,hp:0,def:0};
+  const choices=SHOP_ITEMS.map(it=>{const n=S.shop[it.id]||0,cost=shopCost(it.id),maxed=it.id==='def'&&n>=8;
+    return{label:(maxed?'(maximum atteint) ':'')+it.nm+' (cran '+n+')',sub:it.d+(maxed?'':` · -${cost} orbes`),
+      fn:()=>{if(maxed){showBanner(it.nm,'Déjà au maximum',2);return;}
+        if(S.orbes<cost){showBanner(it.nm,`Pas assez d'orbes (${S.orbes} / ${cost})`,2.2);return;}
+        S.orbes-=cost;S.shop[it.id]=n+1;
+        if(it.id==='hp'){const old=P.maxHp;P.maxHp=hpMax(S.lvl);P.hp+=Math.max(0,P.maxHp-old);}
+        burst(MARKET.x,MARKET.y,'#e6c46a',26,220);showBanner(it.nm+' acheté','Cran '+(n+1),2.6);save();}};});
+  choices.push({label:'Repartir',sub:'',fn:()=>{}});
+  say([{who:'La marchande',text:'Bienvenue au grand marché ! Des orbes bien dépensées valent mieux qu\'un trésor qui dort.',choices}]);}
+function openLibrary(){S.libUses=S.libUses||0;
+  const cost=Math.round(55*Math.pow(1.45,S.libUses)),xpGain=Math.round(70+S.lvl*22);
+  say([{who:'Le bibliothécaire',text:'Les archives d\'Astralis gardent le savoir de générations de mages. Qu\'y cherches-tu ?',choices:[
+    {label:'Étudier un texte ancien',sub:`+${xpGain} XP · -${cost} orbes`,fn:()=>{
+      if(S.orbes<cost){showBanner('Bibliothèque',`Pas assez d'orbes (${S.orbes} / ${cost})`,2.2);return;}
+      S.orbes-=cost;S.libUses++;gainXp(xpGain);
+      burst(LIBRARY.x,LIBRARY.y,'#9fd9ff',26,220);showBanner('Savoir transcrit','+'+xpGain+' XP',2.6);save();}},
+    {label:'Repartir',sub:'',fn:()=>{}}]}]);}
+function openMint(){
+  const acc=Math.min(260,Math.floor((S.play-(S.mintLast||0))/9));
+  say([{who:'Le trésorier',text:acc>0?`Les taxes de l'empire se sont accumulées : ${acc} orbes attendent dans les coffres.`
+      :'Les coffres sont vides pour l\'instant ; repasse plus tard, les taxes rentrent avec le temps.',choices:[
+    ...(acc>0?[{label:'Collecter les taxes',sub:`+${acc} orbes`,fn:()=>{S.orbes+=acc;S.mintLast=S.play;
+      burst(MINT.x,MINT.y,'#ffe04a',30,240);showBanner('Taxes collectées','+'+acc+' orbes',2.6);save();}}]:[]),
+    {label:'Repartir',sub:'',fn:()=>{}}]}]);}
 /* ---------- quêtes de l'empereur : du vrai contenu scénarisé, pas de simples affaires ---------- */
 const EQUESTS={
   malvornTreasure:{name:'Le trésor de Malvorn',pt:()=>FORTMARK,reqWorks:null,
@@ -1412,7 +1452,21 @@ const EQUESTS={
     guard:()=>[['hound',0],['hound',1],['mage',-1],['knight',2]],
     fightBanner:'Les pirates débarquent au port !',
     reward:()=>{S.orbes+=320;S.title='Protecteur du port';},
-    doneBanner:['Le port est sauvé','+320 orbes']}
+    doneBanner:['Le port est sauvé','+320 orbes']},
+  necropoleUnrest:{name:'Les ombres de la Nécropole',pt:()=>NECROPOLE,reqWorks:'necropole',
+    rumor:'Depuis l\'érection de la Nécropole, des gardes jurent avoir vu des silhouettes se lever parmi les tombes, la nuit.',
+    startBanner:'Des ombres rôdent entre les tombes de la Nécropole impériale. Il faut les apaiser - ou les abattre.',
+    guard:()=>[['mage',0],['mage',2],['hound',-1],['hound',1]],
+    fightBanner:'Les ombres se lèvent entre les tombes !',
+    reward:()=>{S.orbes+=280;S.relicBonus=(S.relicBonus||0)+0.05;S.title='Celui qui a apaisé les ombres';},
+    doneBanner:['La Nécropole repose en paix','+280 orbes · Fortune +5% pour toujours']},
+  observatoryComet:{name:'La comète de l\'Observatoire',pt:()=>OBSERVATORY,reqWorks:'observatoire',
+    rumor:'Depuis l\'Observatoire, les astronomes ont vu une comète s\'écraser à l\'ouest. Des pillards y convergent déjà.',
+    startBanner:'Un fragment de comète s\'est écrasé près de l\'Observatoire. Des pillards le convoitent déjà.',
+    guard:()=>[['knight',0],['brute',1],['mage',-1]],
+    fightBanner:'Des pillards se battent pour le fragment de comète !',
+    reward:()=>{S.orbes+=350;S.title='Gardien du ciel';},
+    doneBanner:['Le fragment de comète est sauvé','+350 orbes']}
 };
 // rumeurs disponibles pour le hub du conseil : pas encore commencées, et dont le bâtiment requis existe
 function equestsAvailable(){S.equests=S.equests||{};
@@ -1732,6 +1786,7 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
     decisions:[],title:null,council:{temple:false,academy:false,guard:false,festival:false,wall:false,market:false,library:false,mint:false,
       outpost:false,refuge:false,unified:false,autonomy:false,fortRazed:false,fortPrison:false},
     works:{},lastAffair:null,affairsDone:0,taxMul:1,equests:{},relicBonus:0,
+    shop:{atk:0,hp:0,def:0},libUses:0,mintLast:0,
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1764,6 +1819,9 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.taxMul=typeof d.taxMul==='number'?d.taxMul:1;
   S.equests=(d.equests&&typeof d.equests==='object')?Object.assign({},d.equests):{};
   S.relicBonus=typeof d.relicBonus==='number'?d.relicBonus:0;
+  S.shop=(d.shop&&typeof d.shop==='object')?Object.assign({atk:0,hp:0,def:0},d.shop):{atk:0,hp:0,def:0};
+  S.libUses=typeof d.libUses==='number'?d.libUses:0;
+  S.mintLast=typeof d.mintLast==='number'?d.mintLast:S.play;
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
@@ -1794,6 +1852,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   divines:S.divines,pact2:S.pact2,pact2started:S.pact2started,masterDead:S.masterDead,valerianDead:S.valerianDead,emperor:S.emperor,
   camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,talents:S.talents,
   decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,taxMul:S.taxMul,equests:S.equests,relicBonus:S.relicBonus,
+  shop:S.shop,libUses:S.libUses,mintLast:S.mintLast,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -2055,6 +2114,7 @@ function drawOb(tx,ty){const i=ty*W+tx,t=tiles[i],b=bio[i],v=vari[i],x=tx*T,y=ty
     const h=pal?72:[30,34,38,32,42][bv?bv-1:0];
     const roof=pal?'#c9a64a':(bv%2?ROOF[b]:ROOF2[b]);
     const wall=pal?'#efe8d8':(bv===3?shade(WALLF[b],-0.12):WALLF[b]);
+    ctx.globalCompositeOperation='source-over';softShadow(x+T/2,y+T+6,pal?34:24,pal?13:9,.4);
     ctx.fillStyle=wall;ctx.fillRect(x,y+T-h,T,h);
     ctx.fillStyle=shade(wall,-0.14);for(let yy=y+T-h+6;yy<y+T-6;yy+=11)ctx.fillRect(x,yy,T,1);
     ctx.fillStyle=shade(wall,-0.26);ctx.fillRect(x,y+T-5,T,5);
