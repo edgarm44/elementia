@@ -1488,7 +1488,11 @@ const EQUESTS={
 };
 /* ---------- chapitre final : Le Pacte Interdit - Mal'Zaroth, scellé sous Astralis ---------- */
 // ne se débloque qu'une fois tout le royaume achevé (tous les grands travaux) : un vrai contenu de fin de partie
-function devilUnlocked(){return!!(S.emperor&&GREATWORKS.every(w=>(S.works||{})[w.id]));}
+// se débloque dès que six grands travaux sont achevés (sur les huit possibles) : le chapitre démarre alors tout seul
+const DEVIL_WORKS=6;
+function worksDone(){return GREATWORKS.filter(w=>(S.works||{})[w.id]).length;}
+function devilUnlocked(){return!!(S.emperor&&worksDone()>=DEVIL_WORKS);}
+let devilWaitT=-1;
 function startDevilCh(){S.devilStarted=true;
   say([{who:'???',text:'Je t\'entends penser, petit empereur. Tant de pouvoir amassé... et pourtant tu ne sais rien du vrai prix du pouvoir.'},
     {who:'???',text:'Je suis Mal\'Zaroth. Les quatre dieux de ce monde m\'ont scellé sous ta capitale il y a des siècles, par peur. Le sceau craque enfin.'},
@@ -1499,7 +1503,15 @@ function startDevilCh(){S.devilStarted=true;
         {label:'Refuser et le combattre',sub:'« Ton sceau tiendra. Je m\'en assurerai moi-même. »',fn:()=>{S.devilPact=false;
           showBanner('Un refus qui se paiera cher','Mal\'Zaroth t\'attend sous la Nécropole, au-delà des remparts',4);save();}}]}]);}
 // à appeler chaque frame tant que l'empereur règne : fait apparaître Mal'Zaroth à l'approche, détecte la victoire
-function devilTick(){if(!S||!S.devilStarted||S.devilDone)return;
+function devilTick(dt){if(!S||S.devilDone)return;
+  // démarrage automatique : pas besoin de passer par le conseil, Mal'Zaroth se manifeste de lui-même
+  // ~2,5 s après la fin du sixième grand chantier (le temps de voir la bannière "achevé")
+  if(!S.devilStarted){
+    if(!devilUnlocked()){devilWaitT=-1;return;}
+    if(devilWaitT<0)devilWaitT=2.5;
+    devilWaitT-=dt||0;
+    if(devilWaitT<=0){devilWaitT=-1;shake(10,.6);startDevilCh();}
+    return;}
   if(!S.devilSpawned){
     if(dist(P.x,P.y,DEVILSEAL.x,DEVILSEAL.y)<16*T){S.devilSpawned=true;
       const e=mkEnemy('devil',DEVILSEAL.x,DEVILSEAL.y,{devilBoss:true});e.hp=e.maxHp=EDEF.devil.hp;
@@ -1557,7 +1569,7 @@ function aliveMasters(){if(!S)return MASTERS;return MASTERS.filter(m=>
   !(m.id==='valerian'&&S.valerianDead)&&!(m.clan===S.clan&&S.masterDead));}
 
 function updQuest(dt){
-  if(S.emperor){equestsTick();devilTick();}
+  if(S.emperor){equestsTick();devilTick(dt);}
   for(const id in PORTALS){const p=PORTALS[id];
     if(!S.disc[id]&&dist(P.x,P.y,p.x,p.y)<(id==='capital'?CAPR:CITYR)*T){S.disc[id]=true;
       showBanner(id==='capital'?'Astralis découverte':CLANS[id].city+' découverte','Portail actif · appuie sur E sur la grande place',2.4);}}
@@ -1641,6 +1653,10 @@ function updQuest(dt){
   }}
 function questText(){if(!S)return'';
   const L=SPELLS[S.clan];
+  // chapitre final en cours : il prend le pas sur l'objectif du règne
+  if(S.emperor&&S.devilStarted&&!S.devilDone)
+    return S.devilSpawned?'Le Pacte Interdit : abats Mal\'Zaroth, le Dévoreur de Pactes.'
+      :'Le Pacte Interdit : rejoins la fissure sous Astralis, au-delà de la Nécropole (suis la flèche).';
   switch(S.quest){
     case 'tuto':return`Chasse les Oubliés qui rôdent près de ${CL().city} (${Math.max(0,S.tutoLeft)} restants). Touche 1 pour lancer ton sort.`;
     case 'sword':return'Va chercher l\'épée au hameau de '+swordVillage().name+', sur la route de la capitale.';
@@ -1678,6 +1694,7 @@ function questText(){if(!S)return'';
         :'Tu maîtrises les vingt-six pouvoirs de ton clan. Continue l\'histoire jusqu\'au bout pour affronter Malvorn.';}
     default:return lastQuestTxt;}}
 function questTarget(){if(!S)return null;
+  if(S.emperor&&S.devilStarted&&!S.devilDone)return DEVILSEAL;
   switch(S.quest){
     case 'tuto':return S.tutoPos;
     case 'sword':{const v=swordVillage();return{x:v.x*T,y:v.y*T};}
