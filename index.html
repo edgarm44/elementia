@@ -437,6 +437,10 @@ function gen(){
   // sont placés par coordonnées polaires, indépendamment du pâté de maisons codé en dur ci-dessus,
   // et tombaient dessus par coïncidence (d'où l'impression qu'ils étaient "posés sur les maisons")
   for(const pt of[MARKET,LIBRARY,MINT])disc(pt.x/T,pt.y/T,4.6,0);
+  // même chose pour l'Académie et le Temple, avec une cour devant l'Académie pour les élèves
+  for(const pt of[ACADEMY,TEMPLE])disc(pt.x/T,pt.y/T+1,4.4,0);
+  // et autour des grands travaux (observatoire, arc, statue, fontaine, jardins), qui tombaient eux aussi sur des maisons
+  for(const pt of[OBSERVATORY,ARCH,STATUE,FOUNTAIN,GARDENS])disc(pt.x/T,pt.y/T,3.8,0);
   // cités : trois anneaux de bâtiments, places, tour du maître
   for(const k in CITY){
     const c=CITY[k],cx=c.x,cy=c.y;disc(cx,cy,CITYR,6);ringWall(cx,cy,CITYR,2);
@@ -563,6 +567,10 @@ const EDEF={
   // clan + les 5 pouvoirs divins, talents et marché au maximum) sort autour de 3200 dégâts/seconde en rotation
   // réaliste (sorts selon leurs propres temps de recharge + épée entre les sorts) - mesuré via un test automatisé -
   // donc 1 350 000 pv encaisse ce burst pendant un peu plus de 6 minutes au lieu de tomber en 2 minutes
+  // chapitre de l'Académie : élèves en duel d'entraînement, champions du grand tournoi
+  pupil:{hp:400,sp:120,dmg:6,r:12,xp:0,orb:0,nm:'Élève'},
+  champion:{hp:1100,sp:125,dmg:24,r:14,xp:120,orb:16,nm:'Champion étranger',armor:.8},
+  grandchamp:{hp:260000,sp:110,dmg:46,r:24,xp:6000,orb:500,nm:'Ardanos, champion des royaumes du large',boss:1,armor:.5},
   devil:{hp:1350000,sp:92,dmg:62,r:36,xp:20000,orb:1200,nm:'Mal\'Zaroth, le Dévoreur de Pactes',boss:1,armor:.4}
 };
 
@@ -915,7 +923,9 @@ function hit(e,dmg,a,o={}){if(e.dead)return;dmg=Math.max(1,Math.round(dmg*(0.9+M
   if(o.burn)e.burn=Math.max(e.burn,o.burn);
   fx.push({k:'num',x:e.x+rnd(-6,6),y:e.y-e.r-14,v:dmg,t:0,life:.8,col:o.col||'#ffffff'});
   if(e.hp<=0)kill(e);}
-function kill(e){e.dead=true;if(e.devilBoss)devilSlain=true;burst(e.x,e.y,e.def.boss?'#ff3355':'#a35cff',e.def.boss?60:16,e.def.boss?340:170);
+function kill(e){e.dead=true;if(e.devilBoss)devilSlain=true;if(e.spar!=null)sparDone(e);
+  if(S.students&&S.students.length&&e.def.xp)for(const s of summons)if(s.k==='student'&&dist(s.x,s.y,e.x,e.y)<600){const st=S.students[s.stu];if(st)stuGain(st,Math.min(90,Math.round(e.def.xp*1.5)));}
+  burst(e.x,e.y,e.def.boss?'#ff3355':'#a35cff',e.def.boss?60:16,e.def.boss?340:170);
   gainXp(e.def.xp);
   for(let i=0;i<Math.ceil(e.def.orb/2);i++)pickups.push({k:'orb',x:e.x+rnd(-8,8),y:e.y+rnd(-8,8),vx:rnd(-90,90),vy:rnd(-90,90),v:2});
   if(e.def.orb&&Math.random()<.12)pickups.push({k:'heart',x:e.x,y:e.y,vx:rnd(-60,60),vy:rnd(-60,60),v:Math.round(P.maxHp*.25)});
@@ -1181,6 +1191,7 @@ function findInteract(){
   if(S.guild!=null&&dist(P.x,P.y,GUILDH.x,GUILDH.y)<90)
     return{k:'board',label:(S.gq&&S.gq.done>=S.gq.need)?'Rendre la mission':S.gq?'Registre de la guilde':'Prendre une mission'};
   if(S.emperor&&dist(P.x,P.y,COUNCIL.x,COUNCIL.y)<90)return{k:'council',label:'Tenir conseil'};
+  if(S.academyStarted&&dist(P.x,P.y,ACADEMY.x,ACADEMY.y)<110)return{k:'academy',label:'Diriger l\'Académie'};
   if(S.council&&S.council.market&&dist(P.x,P.y,MARKET.x,MARKET.y)<100)return{k:'market',label:'Entrer au marché'};
   if(S.council&&S.council.library&&dist(P.x,P.y,LIBRARY.x,LIBRARY.y)<90)return{k:'library',label:'Consulter la bibliothèque'};
   if(S.council&&S.council.mint&&dist(P.x,P.y,MINT.x,MINT.y)<90)return{k:'mint',label:'Entrer à l\'Hôtel de la Monnaie'};
@@ -1201,6 +1212,7 @@ function doInteract(){if(!interact)return;
   else if(interact.k==='board')offerBoard();
   else if(interact.k==='council')openCouncil();
   else if(interact.k==='market')openMarket();
+  else if(interact.k==='academy')openAcademy();
   else if(interact.k==='library')openLibrary();
   else if(interact.k==='mint')openMint();}
 
@@ -1539,6 +1551,110 @@ function devilTick(dt){if(!S||S.devilDone)return;
     burst(DEVILSEAL.x,DEVILSEAL.y,'#8a3cff',70,380);shake(18,.9);
     showBanner('Mal\'Zaroth est vaincu',(S.devilPact?'Tu portes désormais la marque du pacte : ta puissance a un prix, pour toujours · +1200 orbes · Fortune +15%'
       :'Le sceau est reforgé à jamais : le royaume est sauf, sans compromission · +1200 orbes · Armure du marché +2 crans'),6);save();}}
+
+/* ---------- chapitre : L'Académie impériale - recruter, entraîner, et mener ses élèves au grand tournoi ---------- */
+const STU_NAMES={elec:['Kaïa','Volt','Elio','Zéphy','Nara','Tesla','Iska','Brann'],fire:['Pyra','Ashen','Brasa','Ignis','Kaël','Soria','Tizon','Vulka'],
+  water:['Marin','Nérée','Ondine','Coral','Thaïs','Loren','Brume','Maëlis'],wind:['Aéris','Sylas','Brisa','Zéphir','Alto','Nimbe','Célian','Vira']};
+const STU_MAX=16,STU_READY=8,STU_NEED=4,STU_LVMAX=30;
+const stuNeed=l=>40+l*30;
+let academyWaitT=-1,tourneyRun=null;
+function stuLabel(st){return`${st.n} (clan ${GEN[st.clan]}) · niveau ${st.lvl}`;}
+function stuGain(st,xp){if(st.lvl>=STU_LVMAX)return;st.xp+=xp;let up=false;
+  while(st.lvl<STU_LVMAX&&st.xp>=stuNeed(st.lvl)){st.xp-=stuNeed(st.lvl);st.lvl++;up=true;}
+  if(up)showBanner(st.n+' progresse','Ton élève passe niveau '+st.lvl,2.2);}
+function stuLvl(st,n){st.lvl=Math.min(STU_LVMAX,st.lvl+n);st.xp=0;}
+function newStudent(lv){const k=KEYS4[Math.floor(rnd(0,4))],used=new Set(S.students.map(x=>x.n));
+  const pool=STU_NAMES[k].filter(n=>!used.has(n));const n=pool.length?pool[Math.floor(rnd(0,pool.length))]:STU_NAMES[k][0]+' '+(S.students.length+1);
+  const st={n,clan:k,lvl:lv||1,xp:0};S.students.push(st);return st;}
+function stuReady(){return S.students.filter(x=>x.lvl>=STU_READY).length;}
+function startAcademy(){S.academyStarted=true;S.council=S.council||{};S.council.academy=true;
+  if(!S.students.length){newStudent(2);newStudent(1);}
+  say([{who:'Maître Oryn',text:'Mal\'Zaroth est retombé dans le néant, et tout le royaume parle de toi. Résultat : des jeunes de tous les clans frappent à la porte de l\'Académie, à l\'ouest d\'Astralis.'},
+    {who:'Maître Oryn',text:'Ils veulent devenir comme toi. Recrute-les, donne-leur des cours, affronte-les en duel, emmène-les combattre à tes côtés. Ils ont tout à apprendre.'},
+    {who:'Maître Oryn',text:`Et dans quelque temps, les royaumes du large organisent un grand tournoi. Si ${STU_NEED} de tes élèves atteignent le niveau ${STU_READY}, l'Académie d'Astralis pourra s'y présenter. Deux premiers élèves t'attendent déjà.`}],
+    ()=>{showBanner('Nouveau chapitre : L\'Académie impériale','Rejoins l\'Académie, à l\'ouest d\'Astralis',4.4);save();});}
+// les élèves qui te suivent en mission (3 au maximum) - ce sont de vraies invocations qui combattent
+function spawnEscort(list){summons=summons.filter(s=>s.k!=='student');
+  (list||S.escort).forEach((i,k)=>{const st=S.students[i];if(!st)return;
+    summons.push({k:'student',stu:i,x:P.x+rnd(-30,30),y:P.y+rnd(-30,30),life:1e9,cd:0,ang:rnd(0,TAU),off:k*TAU/3,
+      dmg:8+st.lvl*3,col:CLANS[st.clan].col,face:0,walk:0});});}
+function openAcademy(){S.students=S.students||[];
+  const n=S.students.length,rc=60+n*25,ready=stuReady();
+  const ch=[];
+  if(n<STU_MAX)ch.push({label:'Recruter un élève',sub:`${n}/${STU_MAX} élèves · -${rc} orbes`,fn:()=>{
+    if(S.orbes<rc){showBanner('Recruter','Pas assez d\'orbes ('+S.orbes+' / '+rc+')',2.2);return;}
+    S.orbes-=rc;const st=newStudent(1);burst(ACADEMY.x,ACADEMY.y,CLANS[st.clan].col,26,220);
+    showBanner(st.n+' rejoint l\'Académie','Clan '+GEN[st.clan]+' · niveau 1',2.8);save();}});
+  if(n){ch.push({label:'Donner un cours',sub:'Un élève gagne un niveau, contre des orbes',fn:()=>pickStudent('Quel élève suit ton cours ?',st=>{
+      const c=30+st.lvl*15;if(st.lvl>=STU_LVMAX){showBanner(st.n,'Déjà au niveau maximum',2);return;}
+      if(S.orbes<c){showBanner('Cours','Pas assez d\'orbes ('+S.orbes+' / '+c+')',2.2);return;}
+      S.orbes-=c;stuLvl(st,1);showBanner('Cours donné à '+st.n,'Niveau '+st.lvl+' · -'+c+' orbes',2.6);save();},st=>' · cours : -'+(30+st.lvl*15)+' orbes')});
+    ch.push({label:'Duel d\'entraînement',sub:'Affronte un élève devant l\'Académie : s\'il tient le coup, il gagne deux niveaux',fn:()=>pickStudent('Contre quel élève ?',st=>startSpar(st))});
+    ch.push({label:'Emmener des élèves en mission',sub:`Jusqu'à 3 élèves te suivent et gagnent de l'expérience en combattant (${S.escort.length}/3)`,fn:()=>pickEscort()});}
+  ch.push({label:(S.academyDone?'Tournoi amical':'Grand tournoi des royaumes'),
+    sub:ready>=STU_NEED?`Tes ${STU_NEED} meilleurs élèves combattent avec toi dans l'arène d'Astralis`:`Il faut ${STU_NEED} élèves au niveau ${STU_READY} (tu en as ${ready})`,
+    fn:()=>{if(ready<STU_NEED){showBanner('Grand tournoi',`Encore ${STU_NEED-ready} élève(s) à amener au niveau ${STU_READY}`,2.6);return;}startTourney();}});
+  ch.push({label:'Repartir',sub:'',fn:()=>{}});
+  say([{who:'Académie d\'Astralis',text:n?`${n} élève(s) inscrit(s), dont ${ready} prêt(s) pour le tournoi.`:'L\'Académie est vide pour l\'instant. Recrute tes premiers élèves !',choices:ch}]);}
+function pickStudent(q,fn,extra){const list=S.students.map((st,i)=>({label:stuLabel(st),sub:(S.escort.includes(i)?'te suit en mission':'à l\'Académie')+(extra?extra(st):''),fn:()=>fn(st,i)}));
+  list.push({label:'Retour',sub:'',fn:()=>openAcademy()});
+  say([{who:'Académie d\'Astralis',text:q,choices:list}]);}
+function pickEscort(){const list=S.students.map((st,i)=>{const on=S.escort.includes(i);
+    return{label:(on?'✓ ':'')+stuLabel(st),sub:on?'Le renvoyer à l\'Académie':'L\'emmener avec toi',fn:()=>{
+      if(on)S.escort=S.escort.filter(x=>x!==i);
+      else{if(S.escort.length>=3)S.escort.shift();S.escort.push(i);}
+      spawnEscort();save();pickEscort();}};});
+  list.push({label:'Terminé',sub:'',fn:()=>{}});
+  say([{who:'Académie d\'Astralis',text:'Qui part en mission avec toi ? (3 au maximum)',choices:list}]);}
+function startSpar(st){if(enemies.some(e=>e.spar!=null&&!e.dead)){showBanner('Duel','Un duel est déjà en cours',2);return;}
+  const i=S.students.indexOf(st),C=CLANS[st.clan];
+  const e=mkEnemy('pupil',ACADEMY.x,ACADEMY.y+130,{arena:true,spar:i,look:{body:shade(C.col,-0.35),trim:C.col,hair:'#4a3626'},
+    def:Object.assign({},EDEF.pupil,{nm:st.n})});
+  e.hp=e.maxHp=Math.round((400+st.lvl*260)*(1+(S.lvl-1)*0.25));e.dmg=4+st.lvl;
+  showBanner('Duel contre '+st.n,'Mets-le à terre : il apprendra de sa défaite',2.6);}
+function sparDone(e){const st=S.students[e.spar];if(!st)return;stuLvl(st,2);
+  burst(e.x,e.y,CLANS[st.clan].col,30,240);
+  showBanner(st.n+' s\'incline','Il se relève plus fort · niveau '+st.lvl,2.8);save();}
+// grand tournoi : quatre manches dans l'arène, tes 4 meilleurs élèves combattent avec toi
+const TOURNEY=[{champion:3},{champion:5},{champion:6},{grandchamp:1,champion:2}];
+const RIVALS=['Kesh','Orvane','Thalyr','Mirdun','Sarkos','Vellis'];
+function startTourney(){if(tourneyRun)return;
+  const team=S.students.map((st,i)=>i).sort((a,b)=>S.students[b].lvl-S.students[a].lvl).slice(0,STU_NEED);
+  tourneyRun={round:0,wait:2.5,team};P.x=ARENA.x;P.y=ARENA.y+ARENA.r*.5;spawnEscort(team);
+  for(const e of enemies)if(e.spar!=null)e.dead=true;
+  showBanner('Le grand tournoi commence','Ton équipe : '+team.map(i=>S.students[i].n).join(', '),3.4);}
+function spawnRound(r){const def=TOURNEY[r];let gi=0;const tot=Object.values(def).reduce((a,b)=>a+b,0);
+  for(const type in def)for(let k=0;k<def[type];k++){const a=(gi++)/tot*TAU-Math.PI/2,d=type==='grandchamp'?0:ARENA.r*.55;
+    const rv=RIVALS[Math.floor(rnd(0,RIVALS.length))];
+    const e=mkEnemy(type,ARENA.x+Math.cos(a)*d,ARENA.y-ARENA.r*.2+Math.sin(a)*d*.6,{arena:true,tourney:true,eliteMul:type==='champion'?2+r:1,
+      look:type==='grandchamp'?{body:'#1d4a5a',trim:'#e6c46a',hair:'#d8d2c4',crown:true}:{body:'#2a5a50',trim:'#9fe0c8',hair:'#2a2420'},
+      def:type==='champion'?Object.assign({},EDEF.champion,{nm:'Champion de '+rv}):EDEF.grandchamp});
+    if(type==='grandchamp'){e.hp=e.maxHp=EDEF.grandchamp.hp;}}
+  showBanner(r===3?'Finale : Ardanos entre dans l\'arène':'Manche '+(r+1)+' / 4',r===3?'Le champion invaincu des royaumes du large':'Des champions étrangers se dressent face à ton équipe',3);}
+function endTourney(win){const run=tourneyRun;tourneyRun=null;
+  for(const e of enemies)if(e.tourney)e.dead=true;
+  spawnEscort();
+  if(!win){showBanner('Le tournoi est interrompu','Ton équipe s\'est dispersée. Retourne à l\'Académie pour retenter ta chance',3.4);return;}
+  for(const i of run.team)if(S.students[i])stuLvl(S.students[i],3);
+  S.tourneyWins=(S.tourneyWins||0)+1;
+  const first=!S.academyDone;S.academyDone=true;S.orbes+=first?2500:600;
+  if(first)S.title='Maître de l\'Académie';
+  burst(ARENA.x,ARENA.y,'#e6c46a',80,420);shake(14,.7);
+  showBanner(first?'L\'Académie d\'Astralis remporte le grand tournoi !':'Tournoi remporté',
+    (first?'Tes élèves sont célébrés dans tout le royaume · +2500 orbes':'+600 orbes')+' · ton équipe gagne 3 niveaux',6);save();}
+function academyTick(dt){if(!S)return;
+  if(!S.academyStarted){if(!S.devilDone){academyWaitT=-1;return;}
+    if(academyWaitT<0)academyWaitT=7;academyWaitT-=dt||0;
+    if(academyWaitT<=0){academyWaitT=-1;startAcademy();}return;}
+  // les élèves en mission reviennent avec toi après un rechargement ou une défaite
+  if(!tourneyRun&&S.escort.length&&!summons.some(s=>s.k==='student'))spawnEscort();
+  for(const s of summons)if(s.k==='student'){if(dist(s.x,s.y,P.x,P.y)>900){s.x=P.x+rnd(-30,30);s.y=P.y+rnd(-30,30);}
+    const st=S.students[s.stu];if(st)s.dmg=8+st.lvl*3;}
+  if(tourneyRun){const r=tourneyRun;
+    if(dist(P.x,P.y,ARENA.x,ARENA.y)>ARENA.r+16*T){endTourney(false);return;}
+    if(!enemies.some(e=>e.tourney&&!e.dead)){r.wait-=dt||0;
+      if(r.wait<=0){if(r.round>=TOURNEY.length){endTourney(true);return;}
+        spawnRound(r.round);r.round++;r.wait=3;}}}}
 // rumeurs disponibles pour le hub du conseil : pas encore commencées, et dont le bâtiment requis existe
 function equestsAvailable(){S.equests=S.equests||{};
   return Object.keys(EQUESTS).filter(id=>!S.equests[id]&&(!EQUESTS[id].reqWorks||(S.works||{})[EQUESTS[id].reqWorks]));}
@@ -1585,7 +1701,7 @@ function aliveMasters(){if(!S)return MASTERS;return MASTERS.filter(m=>
   !(m.id==='valerian'&&S.valerianDead)&&!(m.clan===S.clan&&S.masterDead));}
 
 function updQuest(dt){
-  if(S.emperor){equestsTick();devilTick(dt);}
+  if(S.emperor){equestsTick();devilTick(dt);academyTick(dt);}
   for(const id in PORTALS){const p=PORTALS[id];
     if(!S.disc[id]&&dist(P.x,P.y,p.x,p.y)<(id==='capital'?CAPR:CITYR)*T){S.disc[id]=true;
       showBanner(id==='capital'?'Astralis découverte':CLANS[id].city+' découverte','Portail actif · appuie sur E sur la grande place',2.4);}}
@@ -1670,6 +1786,8 @@ function updQuest(dt){
 function questText(){if(!S)return'';
   const L=SPELLS[S.clan];
   // chapitre final en cours : il prend le pas sur l'objectif du règne
+  if(S.emperor&&tourneyRun)return`Grand tournoi : manche ${Math.max(1,tourneyRun.round)} / ${TOURNEY.length}. Reste dans l'arène et abats les champions avec ton équipe.`;
+  if(S.emperor&&S.academyStarted&&!S.academyDone)return`L'Académie impériale : entraîne tes élèves (${(S.students||[]).length} inscrits, ${stuReady()}/${STU_NEED} au niveau ${STU_READY}) puis lance le grand tournoi.`;
   if(S.emperor&&S.devilStarted&&!S.devilDone)
     return S.devilSpawned?'Le Pacte Interdit : abats Mal\'Zaroth, le Dévoreur de Pactes.'
       :'Le Pacte Interdit : rejoins la fissure sous Astralis, au-delà de la Nécropole (suis la flèche).';
@@ -1711,6 +1829,8 @@ function questText(){if(!S)return'';
     default:return lastQuestTxt;}}
 function questTarget(){if(!S)return null;
   if(S.emperor&&S.devilStarted&&!S.devilDone)return DEVILSEAL;
+  if(S.emperor&&tourneyRun)return ARENA;
+  if(S.emperor&&S.academyStarted&&!S.academyDone)return ACADEMY;
   switch(S.quest){
     case 'tuto':return S.tutoPos;
     case 'sword':{const v=swordVillage();return{x:v.x*T,y:v.y*T};}
@@ -1864,6 +1984,7 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
     works:{},lastAffair:null,affairsDone:0,taxMul:1,equests:{},relicBonus:0,
     shop:{atk:0,hp:0,def:0},libUses:0,mintLast:0,
     devilStarted:false,devilSpawned:false,devilDone:false,devilPact:false,
+    students:[],escort:[],academyStarted:false,academyDone:false,tourneyWins:0,
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1899,6 +2020,9 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.shop=(d.shop&&typeof d.shop==='object')?Object.assign({atk:0,hp:0,def:0},d.shop):{atk:0,hp:0,def:0};
   S.libUses=typeof d.libUses==='number'?d.libUses:0;
   S.mintLast=typeof d.mintLast==='number'?d.mintLast:S.play;
+  S.students=Array.isArray(d.students)?d.students.filter(x=>x&&x.n&&CLANS[x.clan]).map(x=>({n:x.n,clan:x.clan,lvl:x.lvl||1,xp:x.xp||0})):[];
+  S.escort=Array.isArray(d.escort)?d.escort.filter(i=>typeof i==='number'&&i>=0&&i<S.students.length).slice(0,3):[];
+  S.academyStarted=!!d.academyStarted;S.academyDone=!!d.academyDone;S.tourneyWins=d.tourneyWins||0;
   S.devilStarted=!!d.devilStarted;S.devilDone=!!d.devilDone;S.devilPact=!!d.devilPact;
   // correctif : une ancienne version déclarait Mal'Zaroth vaincu dès qu'il disparaissait (joueur trop loin, portail...) -
   // ces fausses victoires sont annulées une fois, pour pouvoir livrer le vrai combat
@@ -1936,6 +2060,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,taxMul:S.taxMul,equests:S.equests,relicBonus:S.relicBonus,
   shop:S.shop,libUses:S.libUses,mintLast:S.mintLast,
   devilStarted:S.devilStarted,devilDone:S.devilDone,devilPact:S.devilPact,devilFix:true,
+  students:S.students,escort:S.escort,academyStarted:S.academyStarted,academyDone:S.academyDone,tourneyWins:S.tourneyWins,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -2072,9 +2197,9 @@ function update(dt){
     if(e.kvx||e.kvy){moveEnt(e,e.kvx*dt,e.kvy*dt);const f=Math.exp(-8*dt);e.kvx*=f;e.kvy*=f;if(Math.abs(e.kvx)<2)e.kvx=0;if(Math.abs(e.kvy)<2)e.kvy=0;}
     if(e.def.passive)continue;
     const dx=P.x-e.x,dy=P.y-e.y,d=Math.hypot(dx,dy)||1;
-    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&!e.crisis&&!e.equest&&!e.devilBoss&&!e.devilAdd&&d>2600){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.camp&&!e.mfinal&&!e.crisis&&!e.equest&&!e.devilBoss&&!e.devilAdd&&!e.arena&&d>2600){e.dead=true;continue;}
     // garde-fou : un Oublié ne doit jamais se trouver sous un dôme protégé hors d'un assaut scénarisé
-    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&!e.crisis&&!e.equest&&!e.devilBoss&&!e.devilAdd&&inSafe(e.x,e.y)){e.dead=true;continue;}
+    if(!atk&&!e.tuto&&!e.wave&&!e.awave&&!e.camp&&!e.fort&&!e.mfinal&&!e.crisis&&!e.equest&&!e.devilBoss&&!e.devilAdd&&!e.arena&&inSafe(e.x,e.y)){e.dead=true;continue;}
     if(e.stun>0){e.stun-=dt;e.slow=1;continue;}
     e.cd-=dt;e.atk-=dt;let mx=0,my=0;const v=e.def.sp*(e.phase===2?1.45:1)*e.slow;e.slow=1;
     if(d<1000||atk){e.face=Math.atan2(dy,dx);
@@ -2084,7 +2209,7 @@ function update(dt){
         if(d<e.r+P.r+10&&e.atk<=0){e.atk=e.type==='hound'?.8:1.1;hurt(e.dmg||e.def.dmg);e.lunge=.15;}}
       if(e.def.boss){
         if(e.phase===1&&e.hp<e.maxHp*.5){e.phase=2;e.r=32;
-          if(e.devilBoss)showBanner('Mal\'Zaroth se déchaîne','Sa vraie forme se libère : plus rapide, et ses serviteurs affluent');else showBanner('Vexor libère le pouvoir du diable','Sa forme démoniaque est plus rapide et plus brutale');shake(16,.7);burst(e.x,e.y,'#ff3355',50,340);}
+          if(e.tourney)showBanner('Ardanos se déchaîne','Le champion du large donne tout ce qu\'il a');else if(e.devilBoss)showBanner('Mal\'Zaroth se déchaîne','Sa vraie forme se libère : plus rapide, et ses serviteurs affluent');else showBanner('Vexor libère le pouvoir du diable','Sa forme démoniaque est plus rapide et plus brutale');shake(16,.7);burst(e.x,e.y,'#ff3355',50,340);}
         e.bcd=(e.bcd??2)-dt;
         if(e.bcd<=0){const a=Math.atan2(dy,dx);
           if(e.phase===1){for(let k=-2;k<=2;k++)eshoot(e,a+k*.18,330,Math.round(e.dmg*.55));e.bcd=2.4;}
@@ -2095,7 +2220,7 @@ function update(dt){
       else if(Math.random()<.01){e.wx=rnd(-1,1);e.wy=rnd(-1,1);}
       if(e.wx!==undefined&&hd<=200){mx=e.wx*.35;my=e.wy*.35;}}
     if(mx||my){e.walk+=dt*8;const nx=e.x+mx*v*dt,ny=e.y+my*v*dt;
-      if(atk||e.tuto||e.camp||e.fort||e.mfinal||!inSafe(nx,ny))moveEnt(e,mx*v*dt,my*v*dt);}
+      if(atk||e.tuto||e.camp||e.fort||e.mfinal||e.arena||!inSafe(nx,ny))moveEnt(e,mx*v*dt,my*v*dt);}
     if(e.lunge)e.lunge=Math.max(0,e.lunge-dt);}
   for(let i=0;i<enemies.length;i++){const a=enemies[i];if(a.dead)continue;
     for(let j=i+1;j<enemies.length;j++){const b=enemies[j];if(b.dead)continue;
@@ -2304,6 +2429,11 @@ function drawEnemy(e){const fl=e.flash>0;
   if(e.type==='golem'){const x=e.x,y=e.y;softShadow(x,y+12,16,6,.3);
     ctx.fillStyle=fl?'#ffffff':'#7c7466';ctx.fillRect(x-14,y-20,28,30);ctx.fillStyle=fl?'#ffffff':'#a49b88';ctx.fillRect(x-14,y-30,28,12);
     ctx.fillStyle=rgba('#e6c46a',.6+Math.sin(time*4+x)*.3);ctx.fillRect(x-3,y-14,6,12);ctx.fillRect(x-8,y-26,4,3);ctx.fillRect(x+4,y-26,4,3);}
+  else if(e.look){const L=e.look,s=e.def.boss?1.7:1.05;
+    if(e.def.boss){ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba(e.phase===2?'#ff8a3a':'#e6c46a',.12+Math.sin(time*5)*.05);
+      circ(e.x,e.y-10*s,30*s);ctx.globalCompositeOperation='source-over';}
+    drawPerson(e.x,e.y,{s,face:e.face,walk:e.walk,body:L.body,trim:L.trim,skin:'#e3bd98',hair:L.hair,flash:fl,crown:L.crown,staff:L.trim});
+    if(!e.def.boss)nameTag(e.x,e.y-36*s,e.def.nm,L.trim);}
   else{const boss=e.def.boss,ph2=e.phase===2,s=boss?(ph2?2.4:2):e.type==='brute'?1.5:e.type==='knight'?1.3:1;
     const lx=e.lunge?Math.cos(e.face)*6:0,ly=e.lunge?Math.sin(e.face)*6:0;
     if(boss||e.type==='brute'||ph2){ctx.globalCompositeOperation='lighter';
@@ -2321,6 +2451,9 @@ function drawEnemy(e){const fl=e.flash>0;
   if(e.hp<e.maxHp&&!e.def.boss){const w=e.r*2.4,x=e.x-w/2,y=e.y-e.r-(e.type==='golem'?28:32)*(e.type==='brute'||e.type==='knight'?1.4:1);
     ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-1,y-1,w+2,5);ctx.fillStyle='#e0485a';ctx.fillRect(x,y,w*Math.max(0,e.hp/e.maxHp),3);}}
 function drawSummon(s){const a=s.face,c=Math.cos(a);ctx.save();
+  if(s.k==='student'){const st=S.students&&S.students[s.stu];const C=CLANS[st?st.clan:'elec'];ctx.restore();
+    drawPerson(s.x,s.y,{s:.85,face:s.face,walk:s.walk,body:shade(C.col,-0.35),trim:C.col,skin:'#e3bd98',hair:'#4a3626',robe:true});
+    if(st)nameTag(s.x,s.y-34,st.n+' · niv. '+st.lvl,C.col);return;}
   if(s.k==='totem'){ctx.translate(s.x,s.y);softShadow(0,8,13,5,.3);
     ctx.fillStyle='#6b5f4a';ctx.fillRect(-6,-26,12,34);ctx.fillStyle='#8a7b5e';ctx.fillRect(-9,-32,18,8);
     ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba(s.col,.35+Math.sin(time*5)*.12);circ(0,-38,9);
@@ -2406,6 +2539,14 @@ function drawAcademy(){const x=ACADEMY.x,y=ACADEMY.y;
   ctx.fillStyle='#f6d98a';ctx.fillRect(x-14,y-28,10,14);ctx.fillRect(x+4,y-28,10,14);
   for(let k=0;k<3;k++){const sx=x-30+k*30;
     drawPerson(sx,y+14,{s:.74,face:Math.PI/2,body:'#cfe9da',trim:'#7a9b84',skin:'#e3bd98',hair:'#6a523c',robe:true});}
+  // les élèves inscrits qui ne sont pas en mission s'entraînent dans la cour, devant l'Académie
+  if(S&&S.academyStarted&&S.students){
+    ctx.fillStyle='rgba(183,167,124,.22)';ctx.beginPath();ctx.ellipse(x,y+70,86,30,0,0,TAU);ctx.fill();
+    ctx.strokeStyle='rgba(230,196,106,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y+70,86,30,0,0,TAU);ctx.stroke();
+    let k=0;S.students.forEach((st,i)=>{if(S.escort.includes(i)||k>=8)return;const C=CLANS[st.clan];
+      const a=k/8*TAU+time*.15,px=x+Math.cos(a)*62,py=y+70+Math.sin(a)*20;k++;
+      drawPerson(px,py,{s:.62,face:a+Math.PI/2,walk:time*3+i,body:shade(C.col,-0.35),trim:C.col,skin:'#e3bd98',hair:'#4a3626',robe:true});
+      if(Math.sin(time*1.3+i)>.6){ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba(C.col,.35);circ(px+Math.cos(a+1.6)*10,py-14,5);ctx.globalCompositeOperation='source-over';}});}
   bigLabel(x,y-88,'Académie d\'Astralis','#9fd9ff',20);}
 function drawGuards(){const C=S&&S.clan?CLANS[S.clan]:{col:'#c9c2b0'};
   for(const g of GUARDPOST)drawPerson(g.x,g.y,{s:.95,face:-Math.PI/2,body:shade(C.col,-0.5),trim:C.col,skin:'#e3bd98',hair:'#2a2420',staff:C.col});}
