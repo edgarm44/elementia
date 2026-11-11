@@ -343,6 +343,8 @@ const FOUNTAIN=worksPt(292.5,22);
 const STATUE=worksPt(202.5,24);
 const OBSERVATORY=worksPt(112.5,25);
 const GARDENS=worksPt(247.5,24);
+// la fissure scellée où dort Mal'Zaroth - hors des remparts, au-delà de la Nécropole (même alignement)
+const DEVILSEAL=worksPt(191.25,43);
 // ombres de nuages qui dérivent lentement sur la carte (effet de profondeur façon "parallax" vu du dessus)
 const CLOUDS=(()=>{const a=[];for(let i=0;i<7;i++)a.push({x0:rnd(0,W*T),y0:rnd(0,H*T),r:rnd(260,480),vx:rnd(7,16)*(i%2?1:-1),vy:rnd(-5,5),ph:rnd(0,TAU)});return a;})();
 function cloudAt(c,t){const span=Math.max(W,H)*T+c.r*2;
@@ -431,6 +433,10 @@ function gen(){
     [-20,9,3,2],[17,9,3,2],[-12,-13,2,2],[10,-13,2,2]])build(CX+hx,CY+hy,w,h);
   build(Math.round(GUILDH.x/T)-1,Math.round(GUILDH.y/T)-3,4,2);
   disc(ORYN.x/T,ORYN.y/T-1,2.6,6);build(Math.round(ORYN.x/T)-1,Math.round(ORYN.y/T)-4,3,2);
+  // clairières pour le Marché, la Grande bibliothèque et l'Hôtel de la Monnaie - ces trois lieux
+  // sont placés par coordonnées polaires, indépendamment du pâté de maisons codé en dur ci-dessus,
+  // et tombaient dessus par coïncidence (d'où l'impression qu'ils étaient "posés sur les maisons")
+  for(const pt of[MARKET,LIBRARY,MINT])disc(pt.x/T,pt.y/T,4.6,0);
   // cités : trois anneaux de bâtiments, places, tour du maître
   for(const k in CITY){
     const c=CITY[k],cx=c.x,cy=c.y;disc(cx,cy,CITYR,6);ringWall(cx,cy,CITYR,2);
@@ -549,7 +555,15 @@ const EDEF={
   knight:{hp:190,sp:95,dmg:20,r:15,xp:30,orb:5,nm:'Chevalier déchu',armor:.65},
   brute:{hp:260,sp:78,dmg:28,r:18,xp:36,orb:7,nm:'Brute démoniaque'},
   golem:{hp:70,sp:0,dmg:0,r:16,xp:6,orb:0,nm:'Golem',passive:1},
-  boss:{hp:2400,sp:100,dmg:30,r:26,xp:700,orb:150,nm:'Vexor, lieutenant de Malvorn',boss:1}
+  boss:{hp:2400,sp:100,dmg:30,r:26,xp:700,orb:150,nm:'Vexor, lieutenant de Malvorn',boss:1},
+  // le démon scellé sous Astralis - un boss de fin de partie, très au-dessus de tout le reste :
+  // immense réserve de vie + forte armure (réduction de dégâts), pour qu'un burst de fin de jeu
+  // (tous les sorts + pouvoirs divins) ne le fasse pas tomber en un instant comme les ennemis normaux
+  // hp calibré empiriquement : un joueur de fin de partie entièrement optimisé (niveau 25, les 28 sorts de
+  // clan + les 5 pouvoirs divins, talents et marché au maximum) sort autour de 3200 dégâts/seconde en rotation
+  // réaliste (sorts selon leurs propres temps de recharge + épée entre les sorts) - mesuré via un test automatisé -
+  // donc 1 350 000 pv encaisse ce burst pendant un peu plus de 6 minutes au lieu de tomber en 2 minutes
+  devil:{hp:1350000,sp:92,dmg:62,r:36,xp:20000,orb:1200,nm:'Mal\'Zaroth, le Dévoreur de Pactes',boss:1,armor:.4}
 };
 
 /* ---------- visée ---------- */
@@ -1384,6 +1398,10 @@ function openCouncil(){
   const works=GREATWORKS.filter(w=>!S.works[w.id]);
   const rumors=equestsAvailable();
   const choices=[{label:'Affaire courante',sub:'Une nouvelle affaire du royaume à régler',fn:()=>openAffair()}];
+  if(devilUnlocked()&&!S.devilDone&&!S.devilStarted)
+    choices.unshift({label:'Rumeur : Une fissure sous Astralis',
+      sub:'Les gardes de la Nécropole n\'osent plus descendre : quelque chose remue sous la pierre, bien plus vieux que Malvorn.',
+      fn:()=>startDevilCh()});
   for(const id of rumors.slice(0,2)){const q=EQUESTS[id];
     choices.push({label:'Rumeur : '+q.name,sub:q.rumor,fn:()=>startEquest(id)});}
   for(const w of works.slice(0,3))choices.push({label:'Chantier : '+w.n,sub:`${w.sub} · -${w.cost} orbes`,fn:()=>buildWork(w)});
@@ -1468,6 +1486,31 @@ const EQUESTS={
     reward:()=>{S.orbes+=350;S.title='Gardien du ciel';},
     doneBanner:['Le fragment de comète est sauvé','+350 orbes']}
 };
+/* ---------- chapitre final : Le Pacte Interdit - Mal'Zaroth, scellé sous Astralis ---------- */
+// ne se débloque qu'une fois tout le royaume achevé (tous les grands travaux) : un vrai contenu de fin de partie
+function devilUnlocked(){return!!(S.emperor&&GREATWORKS.every(w=>(S.works||{})[w.id]));}
+function startDevilCh(){S.devilStarted=true;
+  say([{who:'???',text:'Je t\'entends penser, petit empereur. Tant de pouvoir amassé... et pourtant tu ne sais rien du vrai prix du pouvoir.'},
+    {who:'???',text:'Je suis Mal\'Zaroth. Les quatre dieux de ce monde m\'ont scellé sous ta capitale il y a des siècles, par peur. Le sceau craque enfin.'},
+    {who:'???',text:'Viens à la fissure, sous la Nécropole. Accepte mon pacte, et je te donnerai une puissance que tes dieux t\'ont toujours refusée. Ou viens me combattre, si tu préfères mourir en brave.',
+      choices:[
+        {label:'Accepter le pacte',sub:'« Soit. Montre-moi d\'abord ce que tu vaux. »',fn:()=>{S.devilPact=true;
+          showBanner('Un pacte à rebours','Mal\'Zaroth t\'attend sous la Nécropole, au-delà des remparts',4);save();}},
+        {label:'Refuser et le combattre',sub:'« Ton sceau tiendra. Je m\'en assurerai moi-même. »',fn:()=>{S.devilPact=false;
+          showBanner('Un refus qui se paiera cher','Mal\'Zaroth t\'attend sous la Nécropole, au-delà des remparts',4);save();}}]}]);}
+// à appeler chaque frame tant que l'empereur règne : fait apparaître Mal'Zaroth à l'approche, détecte la victoire
+function devilTick(){if(!S||!S.devilStarted||S.devilDone)return;
+  if(!S.devilSpawned){
+    if(dist(P.x,P.y,DEVILSEAL.x,DEVILSEAL.y)<16*T){S.devilSpawned=true;
+      const e=mkEnemy('devil',DEVILSEAL.x,DEVILSEAL.y,{devilBoss:true});e.hp=e.maxHp=EDEF.devil.hp;
+      showBanner('Mal\'Zaroth se dresse',(S.devilPact?'« Prouve-le, alors. »':'« Puisque tu le veux. »')+' Sa forme emplit tout le ciel.',4.4);shake(14,.8);save();}}
+  else if(!enemies.some(e=>!e.dead&&e.devilBoss)){S.devilDone=true;
+    S.orbes+=1200;
+    if(S.devilPact){S.relicBonus=(S.relicBonus||0)+0.15;S.title='Celui qui a pactisé';}
+    else{S.shop=S.shop||{atk:0,hp:0,def:0};S.shop.def=Math.min(8,(S.shop.def||0)+2);S.title='Celui qui a tenu le sceau';}
+    burst(DEVILSEAL.x,DEVILSEAL.y,'#8a3cff',70,380);shake(18,.9);
+    showBanner('Mal\'Zaroth est vaincu',(S.devilPact?'Tu portes désormais la marque du pacte : ta puissance a un prix, pour toujours · +1200 orbes · Fortune +15%'
+      :'Le sceau est reforgé à jamais : le royaume est sauf, sans compromission · +1200 orbes · Armure du marché +2 crans'),6);save();}}
 // rumeurs disponibles pour le hub du conseil : pas encore commencées, et dont le bâtiment requis existe
 function equestsAvailable(){S.equests=S.equests||{};
   return Object.keys(EQUESTS).filter(id=>!S.equests[id]&&(!EQUESTS[id].reqWorks||(S.works||{})[EQUESTS[id].reqWorks]));}
@@ -1514,7 +1557,7 @@ function aliveMasters(){if(!S)return MASTERS;return MASTERS.filter(m=>
   !(m.id==='valerian'&&S.valerianDead)&&!(m.clan===S.clan&&S.masterDead));}
 
 function updQuest(dt){
-  if(S.emperor)equestsTick();
+  if(S.emperor){equestsTick();devilTick();}
   for(const id in PORTALS){const p=PORTALS[id];
     if(!S.disc[id]&&dist(P.x,P.y,p.x,p.y)<(id==='capital'?CAPR:CITYR)*T){S.disc[id]=true;
       showBanner(id==='capital'?'Astralis découverte':CLANS[id].city+' découverte','Portail actif · appuie sur E sur la grande place',2.4);}}
@@ -1787,6 +1830,7 @@ function freshState(name,clan,tunic){const l=new Array(NSP).fill(false);l[0]=tru
       outpost:false,refuge:false,unified:false,autonomy:false,fortRazed:false,fortPrison:false},
     works:{},lastAffair:null,affairsDone:0,taxMul:1,equests:{},relicBonus:0,
     shop:{atk:0,hp:0,def:0},libUses:0,mintLast:0,
+    devilStarted:false,devilSpawned:false,devilDone:false,devilPact:false,
     talents:{vit:0,pow:0,def:0,for:0},
     bar:[0],
     tutoLeft:4,examOn:false,examNeedExit:false,examT:0,wave:0,waveOn:false,waveDelay:0,tutoPos:null};}
@@ -1822,6 +1866,8 @@ function loadGame(d){resetWorld();S=freshState(d.name,d.clan,d.tunic);
   S.shop=(d.shop&&typeof d.shop==='object')?Object.assign({atk:0,hp:0,def:0},d.shop):{atk:0,hp:0,def:0};
   S.libUses=typeof d.libUses==='number'?d.libUses:0;
   S.mintLast=typeof d.mintLast==='number'?d.mintLast:S.play;
+  S.devilStarted=!!d.devilStarted;S.devilDone=!!d.devilDone;S.devilPact=!!d.devilPact;
+  S.devilSpawned=false; // le démon lui-même n'est jamais sauvegardé : s'il n'est pas vaincu, il réapparaîtra à l'approche
   S.questBefore=d.questBefore||null;
   if(Array.isArray(d.bar)&&d.bar.length)S.bar=d.bar.filter(i=>typeof i==='number'&&i>=0&&i<MAXSP&&(i<NSP?S.learned[i]:(i-NSP)<S.divines.length)).slice(0,DPER);
   if(!S.bar.length)S.bar=[0];
@@ -1853,6 +1899,7 @@ function snapshot(){return{v:4,ts:Date.now(),play:Math.round(S.play||0),
   camps:S.camps,gods:S.gods,bless:S.bless,bar:S.bar,questBefore:S.questBefore,talents:S.talents,
   decisions:S.decisions,title:S.title,council:S.council,works:S.works,lastAffair:S.lastAffair,affairsDone:S.affairsDone,taxMul:S.taxMul,equests:S.equests,relicBonus:S.relicBonus,
   shop:S.shop,libUses:S.libUses,mintLast:S.mintLast,
+  devilStarted:S.devilStarted,devilDone:S.devilDone,devilPact:S.devilPact,
   learned:S.learned,met:S.met,disc:S.disc,gq:S.gq,gqDone:S.gqDone,tutoLeft:S.tutoLeft,
   x:Math.round(P.x),y:Math.round(P.y),hp:Math.round(P.hp)};}
 function writeSlot(slot){if(!S||!P)return false;
@@ -2372,6 +2419,10 @@ function drawLibrary(){const x=LIBRARY.x,y=LIBRARY.y;
   ctx.fillStyle=shade('#4a3d2c',0.22);poly([[x-58,y-54],[x,y-88],[x-8,y-82]]);
   ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#9fd9ff',.2+Math.sin(time*1.8)*.07);circ(x,y-66,11);
   ctx.globalCompositeOperation='source-over';
+  // perron et deux érudits qui montent la garde devant les archives
+  ctx.fillStyle='#b0a37e';ctx.fillRect(x-62,y-2,124,7);ctx.fillStyle=shade('#b0a37e',-0.15);ctx.fillRect(x-62,y+3,124,2);
+  drawPerson(x-36,y+15,{s:.7,face:Math.PI/2,body:'#8a6a9a',trim:'#5a4060',skin:'#e3bd98',hair:'#2a2420',robe:true});
+  drawPerson(x+36,y+15,{s:.7,face:Math.PI/2,body:'#6a7a9a',trim:'#405060',skin:'#caa078',hair:'#4a3626',robe:true});
   bigLabel(x,y-100,'Grande bibliothèque','#9fd9ff',18);}
 // l'hôtel de la monnaie impériale (décision "monnaie") - socle de pierre, colonnes et fronton doré, comme les autres grands bâtiments
 function drawMint(){const x=MINT.x,y=MINT.y;
@@ -2386,6 +2437,10 @@ function drawMint(){const x=MINT.x,y=MINT.y;
   ctx.fillStyle=shade('#e6c46a',0.25);poly([[x-50,y-46],[x,y-76],[x-8,y-70]]);
   for(let k=0;k<3;k++){ctx.globalCompositeOperation='lighter';
     ctx.fillStyle=rgba('#ffe04a',.3+Math.sin(time*2.4+k)*.1);circ(x-20+k*20,y-16,6);ctx.globalCompositeOperation='source-over';}
+  // garde du trésor, et un petit coffre à pièces posé près de l'entrée
+  drawPerson(x-42,y+10,{s:.85,face:Math.PI/2,body:'#5a5048',trim:'#e6c46a',skin:'#e3bd98',hair:'#2a2420',staff:'#e6c46a'});
+  ctx.fillStyle='#6a4a2a';ctx.fillRect(x+26,y-4,24,16);ctx.fillStyle=shade('#6a4a2a',0.3);ctx.fillRect(x+26,y-4,24,4);
+  ctx.fillStyle='#e6c46a';ctx.fillRect(x+31,y+1,14,4);ctx.fillStyle=shade('#6a4a2a',-0.3);ctx.fillRect(x+26,y+7,24,2);
   bigLabel(x,y-88,'Hôtel de la Monnaie','#e6c46a',18);}
 /* ---------- grands travaux : chantiers libres financés depuis le conseil ---------- */
 function drawStatue(){const x=STATUE.x,y=STATUE.y;
@@ -2468,6 +2523,16 @@ function drawPort(){const x=PORT.x,y=PORT.y;
     ctx.fillStyle='#e6c46a';ctx.beginPath();ctx.moveTo(sx,y-46);ctx.lineTo(sx+16,y-40);ctx.lineTo(sx,y-34);ctx.fill();}
   if(Math.random()<.4){ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#cfe9ff',.25);circ(x+rnd(-50,50),y+rnd(-6,10),2);ctx.globalCompositeOperation='source-over';}
   bigLabel(x,y-62,'Port impérial','#cfe9ff',18);}
+// la fissure scellée où dort Mal'Zaroth - une crevasse qui pulse d'une lueur malsaine, bien visible de loin
+function drawDevilSeal(){const x=DEVILSEAL.x,y=DEVILSEAL.y;
+  softShadow(x,y+10,74,22,.4);
+  ctx.fillStyle='#1a1420';ctx.beginPath();ctx.ellipse(x,y,68,20,0,0,TAU);ctx.fill();
+  ctx.strokeStyle=rgba('#8a3cff',.55+Math.sin(time*2.2)*.2);ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x-54,y-4);ctx.lineTo(x-18,y+8);ctx.lineTo(x+6,y-6);ctx.lineTo(x+50,y+6);ctx.stroke();
+  ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba('#8a3cff',.28+Math.sin(time*2.6)*.1);circ(x,y,30);
+  ctx.fillStyle=rgba('#ff3355',.14+Math.sin(time*3.1)*.06);circ(x,y,52);
+  ctx.globalCompositeOperation='source-over';
+  bigLabel(x,y-36,'Une fissure sous Astralis','#8a3cff',18);}
 function drawNecropole(){const x=NECROPOLE.x,y=NECROPOLE.y;
   softShadow(x,y+20,60,14,.28);
   ctx.fillStyle=shade('#857d70',-0.1);ctx.beginPath();ctx.ellipse(x,y,58,18,0,0,TAU);ctx.fill();
@@ -2747,6 +2812,7 @@ function renderWorld(){const vw=VW/ZOOM,vh=VH/ZOOM;
     if(S.works&&S.works.bannieres)drawBanners();
     if(S.works&&S.works.port)drawPort();
     if(S.works&&S.works.necropole)drawNecropole();
+    if(typeof devilUnlocked==='function'&&devilUnlocked()&&!S.devilDone)drawDevilSeal();
     if(S.council&&S.council.outpost)drawOutpost();
     if(S.council&&S.council.refuge)drawRefuge();
     if(S.council&&(S.council.unified||S.council.autonomy))drawClanBanners();
@@ -3222,7 +3288,7 @@ if(location.search.indexOf('dbg')>=0)window.E={
   tal:()=>openTalents(),talClose:()=>closeTalents(),toggleMount:()=>toggleMount(),load:d=>loadGame(d),snap:()=>snapshot(),
   cast:i=>{P.cds[i]=0;cast(i);},icons:()=>SPELLS[S.clan].map(s=>s.ic),fxLen:()=>fx.length,
   council:()=>openCouncil(),nsp:()=>NSP,
-  pts:()=>({WALLTOWERS,MARKET,LIBRARY,MINT,STATUE,GARDENS,FOUNTAIN,OBSERVATORY,ARCH,COUNCIL,TEMPLE,ACADEMY,PORT,NECROPOLE,FRONTIER,FORTMARK,CITY}),
+  pts:()=>({WALLTOWERS,MARKET,LIBRARY,MINT,STATUE,GARDENS,FOUNTAIN,OBSERVATORY,ARCH,COUNCIL,TEMPLE,ACADEMY,PORT,NECROPOLE,FRONTIER,FORTMARK,CITY,DEVILSEAL}),
   nEnemies:()=>enemies.filter(e=>!e.dead).length,crisisFn:(id,i)=>CRISES.find(c=>c.id===id).options[i].apply(),
   rawP:()=>({x:P.x,y:P.y,T,VW,ZOOM,dlgOpen,helpOpen,savesOpen,grimOpen,talOpen,camx:cam.x,camy:cam.y}),
   killAll:()=>{for(const e of enemies)if(!e.dead)hit(e,99999,0,{});}};
